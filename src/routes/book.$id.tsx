@@ -1,10 +1,12 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, MapPin, ShoppingBag, Repeat, HandCoins, Truck } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, MapPin, ShoppingBag, Repeat, HandCoins, Truck, MessageCircle, Phone, CreditCard, QrCode, Wallet, Banknote } from "lucide-react";
 import { toast } from "sonner";
 import { buybackPrice, useCurrentUser, useStore } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ChatDialog, CallDialog } from "@/components/chat-call";
 
 export const Route = createFileRoute("/book/$id")({
   head: ({ params }) => ({
@@ -32,6 +34,18 @@ function BookDetail() {
   const seller = users.find((u) => u.id === book.sellerId)!;
   const buyback = buybackPrice(book.originalPrice, book.condition);
   const commissionPct = commissions.perListing[book.id] ?? commissions.sale;
+  const platformCut = Math.round((book.price * commissionPct) / 100);
+
+  const [chatOpen, setChatOpen] = useState(false);
+  const [callOpen, setCallOpen] = useState(false);
+
+  const pm = seller.paymentMethods;
+  const paymentBadges = [
+    pm.upi && { icon: QrCode, label: "UPI / QR" },
+    pm.card && { icon: CreditCard, label: "Card" },
+    pm.wallet && { icon: Wallet, label: "Wallet" },
+    pm.cod && { icon: Banknote, label: "Cash on delivery" },
+  ].filter(Boolean) as { icon: typeof QrCode; label: string }[];
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -66,6 +80,18 @@ function BookDetail() {
             <p className="mt-6 max-w-prose leading-relaxed text-muted-foreground">{book.description}</p>
           )}
 
+          <div className="mt-6">
+            <div className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">Payment accepted</div>
+            <div className="flex flex-wrap gap-2">
+              {paymentBadges.length === 0 && <span className="text-xs text-muted-foreground">Seller hasn't set methods yet.</span>}
+              {paymentBadges.map((p) => (
+                <span key={p.label} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-2.5 py-1 text-xs">
+                  <p.icon className="h-3.5 w-3.5" /> {p.label}
+                </span>
+              ))}
+            </div>
+          </div>
+
           <div className="mt-8 flex flex-wrap gap-3">
             <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => toast.success("Added to cart", { description: `${book.title} — ₹${book.price}` })}>
               <ShoppingBag className="mr-2 h-4 w-4" /> Buy now
@@ -75,6 +101,12 @@ function BookDetail() {
                 <Repeat className="mr-2 h-4 w-4" /> Rent
               </Button>
             )}
+            <Button size="lg" variant="outline" onClick={() => setChatOpen(true)}>
+              <MessageCircle className="mr-2 h-4 w-4" /> Chat
+            </Button>
+            <Button size="lg" variant="outline" onClick={() => setCallOpen(true)}>
+              <Phone className="mr-2 h-4 w-4" /> Call
+            </Button>
           </div>
 
           <Separator className="my-8" />
@@ -109,13 +141,17 @@ function BookDetail() {
             <div className="mt-6 rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
               <div className="font-medium text-accent">Admin view</div>
               <div className="text-muted-foreground">
-                Commission applied: <span className="font-semibold text-foreground">{commissionPct}%</span>
+                Commission applied: <span className="font-semibold text-foreground">{commissionPct}%</span> · Platform cut on this listing:{" "}
+                <span className="font-semibold text-foreground">₹{platformCut}</span>
                 {commissions.perListing[book.id] !== undefined && " (per-listing override)"}
               </div>
             </div>
           )}
         </div>
       </div>
+
+      <ChatDialog open={chatOpen} onOpenChange={setChatOpen} otherId={seller.id} bookId={book.id} />
+      <CallDialog open={callOpen} onOpenChange={setCallOpen} otherId={seller.id} />
     </div>
   );
 }

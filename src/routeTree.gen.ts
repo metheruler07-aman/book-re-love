@@ -10,9 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SellRouteImport } from './routes/sell'
+import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as CommunityRouteImport } from './routes/community'
 import { Route as BrowseRouteImport } from './routes/browse'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
@@ -21,6 +23,11 @@ import { Route as BookIdRouteImport } from './routes/book.$id'
 const SellRoute = SellRouteImport.update({
   id: '/sell',
   path: '/sell',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecommendationsRoute = RecommendationsRouteImport.update({
+  id: '/recommendations',
+  path: '/recommendations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotesRoute = NotesRouteImport.update({
@@ -36,6 +43,11 @@ const CommunityRoute = CommunityRouteImport.update({
 const BrowseRoute = BrowseRouteImport.update({
   id: '/browse',
   path: '/browse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -63,9 +75,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/community': typeof CommunityRoute
   '/notes': typeof NotesRoute
+  '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
   '/book/$id': typeof BookIdRoute
 }
@@ -73,9 +87,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/community': typeof CommunityRoute
   '/notes': typeof NotesRoute
+  '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
   '/book/$id': typeof BookIdRoute
 }
@@ -84,9 +100,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/community': typeof CommunityRoute
   '/notes': typeof NotesRoute
+  '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
   '/book/$id': typeof BookIdRoute
 }
@@ -96,9 +114,11 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/auth'
     | '/browse'
     | '/community'
     | '/notes'
+    | '/recommendations'
     | '/sell'
     | '/book/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -106,9 +126,11 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/auth'
     | '/browse'
     | '/community'
     | '/notes'
+    | '/recommendations'
     | '/sell'
     | '/book/$id'
   id:
@@ -116,9 +138,11 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/auth'
     | '/browse'
     | '/community'
     | '/notes'
+    | '/recommendations'
     | '/sell'
     | '/book/$id'
   fileRoutesById: FileRoutesById
@@ -127,9 +151,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRoute
+  AuthRoute: typeof AuthRoute
   BrowseRoute: typeof BrowseRoute
   CommunityRoute: typeof CommunityRoute
   NotesRoute: typeof NotesRoute
+  RecommendationsRoute: typeof RecommendationsRoute
   SellRoute: typeof SellRoute
   BookIdRoute: typeof BookIdRoute
 }
@@ -141,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/sell'
       fullPath: '/sell'
       preLoaderRoute: typeof SellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recommendations': {
+      id: '/recommendations'
+      path: '/recommendations'
+      fullPath: '/recommendations'
+      preLoaderRoute: typeof RecommendationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notes': {
@@ -162,6 +195,13 @@ declare module '@tanstack/react-router' {
       path: '/browse'
       fullPath: '/browse'
       preLoaderRoute: typeof BrowseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -199,9 +239,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   AdminRoute: AdminRoute,
+  AuthRoute: AuthRoute,
   BrowseRoute: BrowseRoute,
   CommunityRoute: CommunityRoute,
   NotesRoute: NotesRoute,
+  RecommendationsRoute: RecommendationsRoute,
   SellRoute: SellRoute,
   BookIdRoute: BookIdRoute,
 }
