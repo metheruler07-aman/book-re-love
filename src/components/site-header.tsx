@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import { BookOpen, Moon, Sun } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { BookOpen, Moon, Sun, LogIn, LogOut } from "lucide-react";
 import { useCurrentUser, useStore, useTheme } from "@/lib/mock-store";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -9,16 +9,18 @@ import { Badge } from "@/components/ui/badge";
 
 const navLinks = [
   { to: "/browse", label: "Browse" },
+  { to: "/recommendations", label: "Recs" },
   { to: "/sell", label: "Sell / Rent" },
   { to: "/notes", label: "Notes" },
   { to: "/community", label: "Community" },
-  { to: "/account", label: "Account" },
+  { to: "/messages", label: "Messages" },
 ];
 
 export function SiteHeader() {
-  const { users, currentUserId, setCurrentUserId } = useStore();
+  const { users, currentUserId, setCurrentUserId, signedIn, signOut } = useStore();
   const me = useCurrentUser();
   const { theme, toggle } = useTheme();
+  const navigate = useNavigate();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
@@ -61,19 +63,31 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <Badge variant="outline" className="hidden capitalize sm:inline-flex">{me.role}</Badge>
-          <Select value={currentUserId} onValueChange={setCurrentUserId}>
-            <SelectTrigger className="h-9 w-[170px]">
-              <SelectValue placeholder="Switch user" />
-            </SelectTrigger>
-            <SelectContent>
-              {users.map((u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {signedIn ? (
+            <>
+              <Link to="/account" className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline">
+                {me.name}
+              </Link>
+              <Badge variant="outline" className="hidden capitalize sm:inline-flex">{me.role}</Badge>
+              <Select value={currentUserId} onValueChange={setCurrentUserId}>
+                <SelectTrigger className="h-9 w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="icon" variant="ghost" onClick={() => { signOut(); navigate({ to: "/auth" }); }} aria-label="Sign out">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" onClick={() => navigate({ to: "/auth" })}>
+              <LogIn className="mr-2 h-4 w-4" /> Sign in
+            </Button>
+          )}
           <Button size="icon" variant="ghost" onClick={toggle} aria-label="Toggle theme">
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
@@ -96,15 +110,11 @@ export function SiteFooter() {
         <div className="flex gap-8">
           <div>
             <div className="mb-2 font-medium text-foreground">Market</div>
-            <ul className="space-y-1">
-              <li>Browse books</li><li>Rent</li><li>Notes</li>
-            </ul>
+            <ul className="space-y-1"><li>Browse</li><li>Rent</li><li>Notes</li></ul>
           </div>
           <div>
             <div className="mb-2 font-medium text-foreground">Community</div>
-            <ul className="space-y-1">
-              <li>Requests</li><li>Buyback</li><li>Sellers</li>
-            </ul>
+            <ul className="space-y-1"><li>Recommendations</li><li>Requests</li><li>Messages</li></ul>
           </div>
         </div>
       </div>

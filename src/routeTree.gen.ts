@@ -10,9 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SellRouteImport } from './routes/sell'
+import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as NotesRouteImport } from './routes/notes'
+import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as CommunityRouteImport } from './routes/community'
 import { Route as BrowseRouteImport } from './routes/browse'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
@@ -23,9 +26,19 @@ const SellRoute = SellRouteImport.update({
   path: '/sell',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RecommendationsRoute = RecommendationsRouteImport.update({
+  id: '/recommendations',
+  path: '/recommendations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NotesRoute = NotesRouteImport.update({
   id: '/notes',
   path: '/notes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesRoute = MessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CommunityRoute = CommunityRouteImport.update({
@@ -36,6 +49,11 @@ const CommunityRoute = CommunityRouteImport.update({
 const BrowseRoute = BrowseRouteImport.update({
   id: '/browse',
   path: '/browse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -63,9 +81,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/community': typeof CommunityRoute
+  '/messages': typeof MessagesRoute
   '/notes': typeof NotesRoute
+  '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
   '/book/$id': typeof BookIdRoute
 }
@@ -73,9 +94,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/community': typeof CommunityRoute
+  '/messages': typeof MessagesRoute
   '/notes': typeof NotesRoute
+  '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
   '/book/$id': typeof BookIdRoute
 }
@@ -84,9 +108,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/community': typeof CommunityRoute
+  '/messages': typeof MessagesRoute
   '/notes': typeof NotesRoute
+  '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
   '/book/$id': typeof BookIdRoute
 }
@@ -96,9 +123,12 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/auth'
     | '/browse'
     | '/community'
+    | '/messages'
     | '/notes'
+    | '/recommendations'
     | '/sell'
     | '/book/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -106,9 +136,12 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/auth'
     | '/browse'
     | '/community'
+    | '/messages'
     | '/notes'
+    | '/recommendations'
     | '/sell'
     | '/book/$id'
   id:
@@ -116,9 +149,12 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/auth'
     | '/browse'
     | '/community'
+    | '/messages'
     | '/notes'
+    | '/recommendations'
     | '/sell'
     | '/book/$id'
   fileRoutesById: FileRoutesById
@@ -127,9 +163,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRoute
+  AuthRoute: typeof AuthRoute
   BrowseRoute: typeof BrowseRoute
   CommunityRoute: typeof CommunityRoute
+  MessagesRoute: typeof MessagesRoute
   NotesRoute: typeof NotesRoute
+  RecommendationsRoute: typeof RecommendationsRoute
   SellRoute: typeof SellRoute
   BookIdRoute: typeof BookIdRoute
 }
@@ -143,11 +182,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SellRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/recommendations': {
+      id: '/recommendations'
+      path: '/recommendations'
+      fullPath: '/recommendations'
+      preLoaderRoute: typeof RecommendationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/notes': {
       id: '/notes'
       path: '/notes'
       fullPath: '/notes'
       preLoaderRoute: typeof NotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages': {
+      id: '/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof MessagesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/community': {
@@ -162,6 +215,13 @@ declare module '@tanstack/react-router' {
       path: '/browse'
       fullPath: '/browse'
       preLoaderRoute: typeof BrowseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -199,9 +259,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   AdminRoute: AdminRoute,
+  AuthRoute: AuthRoute,
   BrowseRoute: BrowseRoute,
   CommunityRoute: CommunityRoute,
+  MessagesRoute: MessagesRoute,
   NotesRoute: NotesRoute,
+  RecommendationsRoute: RecommendationsRoute,
   SellRoute: SellRoute,
   BookIdRoute: BookIdRoute,
 }
