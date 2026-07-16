@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Plus, Pencil, Trash2, Clock, CheckCircle2, XCircle, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { buybackPrice, useCurrentUser, useStore, type Condition } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/sell")({
   head: () => ({
     meta: [
       { title: "Sell & rent books — Second Chapter" },
-      { name: "description", content: "List books for sale or rent. Manage your prices and inventory." },
+      { name: "description", content: "List books for sale or rent. Listings go live after admin sets the platform cut and approves." },
     ],
   }),
   component: Sell,
@@ -28,8 +28,17 @@ const COVERS = ["📖", "📕", "📗", "📘", "📙", "📚", "🕮", "🌾", 
 
 function Sell() {
   const me = useCurrentUser();
-  const { books, addBook, updateBook, removeBook } = useStore();
+  const { signedIn, books, commissions, removeBook } = useStore();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!signedIn) { toast("Sign in to sell books"); navigate({ to: "/auth" }); }
+  }, [signedIn, navigate]);
+
+  if (!signedIn) return null;
+
   const myBooks = books.filter((b) => b.sellerId === me.id && !b.removed);
+  const live = myBooks.filter((b) => b.status === "approved");
 
   if (me.role === "buyer") {
     return (
@@ -42,7 +51,7 @@ function Sell() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <header className="mb-8 flex items-end justify-between">
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-4xl">Your shelf</h1>
           <p className="mt-1 text-muted-foreground">Manage listings, edit prices, and add new titles.</p>
@@ -50,10 +59,17 @@ function Sell() {
         <NewListingDialog />
       </header>
 
+      <div className="mb-6 rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
+        <div className="flex items-center gap-2 font-medium text-accent"><ShieldCheck className="h-4 w-4" /> Approval required</div>
+        <p className="mt-1 text-muted-foreground">
+          Every new listing is held for admin review. Admin sets the platform cut for your book, then approves it — only then does it appear on Browse.
+        </p>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Active listings" value={myBooks.length.toString()} />
-        <StatCard label="Avg price" value={`₹${myBooks.length ? Math.round(myBooks.reduce((a, b) => a + b.price, 0) / myBooks.length) : 0}`} />
-        <StatCard label="Est. inventory value" value={`₹${myBooks.reduce((a, b) => a + b.price, 0)}`} />
+        <StatCard label="Live listings" value={live.length.toString()} />
+        <StatCard label="Avg price" value={`₹${live.length ? Math.round(live.reduce((a, b) => a + b.price, 0) / live.length) : 0}`} />
+        <StatCard label="Est. inventory value" value={`₹${live.reduce((a, b) => a + b.price, 0)}`} />
       </div>
 
       <div className="mt-8 rounded-lg border border-border bg-card">
@@ -61,44 +77,63 @@ function Sell() {
           <TableHeader>
             <TableRow>
               <TableHead>Title</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Condition</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Rent/wk</TableHead>
+              <TableHead>Platform cut</TableHead>
               <TableHead>Buyback</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {myBooks.map((b) => (
-              <TableRow key={b.id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{b.cover}</span>
-                    <div>
-                      <div className="font-medium">{b.title}</div>
-                      <div className="text-xs text-muted-foreground">{b.author}</div>
+            {myBooks.map((b) => {
+              const cut = commissions.perListing[b.id];
+              return (
+                <TableRow key={b.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{b.cover}</span>
+                      <div>
+                        <div className="font-medium">{b.title}</div>
+                        <div className="text-xs text-muted-foreground">{b.author}</div>
+                      </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell><Badge variant="secondary">{b.condition}</Badge></TableCell>
-                <TableCell>₹{b.price}</TableCell>
-                <TableCell>{b.rentPerWeek ? `₹${b.rentPerWeek}` : "—"}</TableCell>
-                <TableCell className="text-muted-foreground">₹{buybackPrice(b.originalPrice, b.condition)}</TableCell>
-                <TableCell className="text-right">
-                  <EditListingDialog id={b.id} />
-                  <Button size="icon" variant="ghost" onClick={() => { removeBook(b.id); toast("Listing removed"); }}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell><StatusBadge status={b.status} rejectionNote={b.rejectionNote} /></TableCell>
+                  <TableCell><Badge variant="secondary">{b.condition}</Badge></TableCell>
+                  <TableCell>₹{b.price}</TableCell>
+                  <TableCell>{b.rentPerWeek ? `₹${b.rentPerWeek}` : "—"}</TableCell>
+                  <TableCell className="text-xs">
+                    {b.status === "approved" ? `${cut ?? commissions.sale}%` : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">₹{buybackPrice(b.originalPrice, b.condition)}</TableCell>
+                  <TableCell className="text-right">
+                    <EditListingDialog id={b.id} />
+                    <Button size="icon" variant="ghost" onClick={() => { removeBook(b.id); toast("Listing removed"); }}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
             {myBooks.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="py-10 text-center text-muted-foreground">No listings yet. Add your first book.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="py-10 text-center text-muted-foreground">No listings yet. Add your first book.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
       </div>
     </div>
+  );
+}
+
+function StatusBadge({ status, rejectionNote }: { status: "pending" | "approved" | "rejected"; rejectionNote?: string }) {
+  if (status === "approved") return <Badge variant="secondary" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Live</Badge>;
+  if (status === "pending")  return <Badge className="gap-1 bg-accent text-accent-foreground"><Clock className="h-3 w-3" /> Pending</Badge>;
+  return (
+    <span title={rejectionNote}>
+      <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" /> Rejected</Badge>
+    </span>
   );
 }
 
@@ -160,6 +195,9 @@ function NewListingDialog() {
           <Field label="Description (optional)">
             <Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </Field>
+          <p className="rounded-md bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
+            Heads up: your listing will be marked <b>Pending</b> until admin sets the platform cut and approves it.
+          </p>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
@@ -176,11 +214,11 @@ function NewListingDialog() {
                 sellerId: me.id, area: me.area,
                 description: form.description || undefined,
               });
-              toast.success("Listing published");
+              toast.success("Submitted for admin approval");
               setOpen(false);
             }}
           >
-            Publish
+            Submit for approval
           </Button>
         </DialogFooter>
       </DialogContent>
