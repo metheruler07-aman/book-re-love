@@ -158,7 +158,7 @@ function NavGroup({ label, children }: { label: string; children: React.ReactNod
 function DrawerLink({ to, icon: Icon, label, onNav }: { to: string; icon: React.ComponentType<{ className?: string }>; label: string; onNav: () => void }) {
   return (
     <Link
-      to={to}
+      to={to as never}
       onClick={onNav}
       activeProps={{ className: "bg-secondary text-secondary-foreground" }}
       className="flex items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
