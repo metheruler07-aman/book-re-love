@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { MessageCircle, Phone, ShieldCheck } from "lucide-react";
 import { useCurrentUser, useStore } from "@/lib/mock-store";
 import { ChatDialog, CallDialog } from "@/components/chat-call";
@@ -17,7 +18,12 @@ export const Route = createFileRoute("/messages")({
 
 function MessagesPage() {
   const me = useCurrentUser();
-  const { threads, users, books } = useStore();
+  const { signedIn, threads, users, books } = useStore();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!signedIn) { toast("Sign in to view messages"); navigate({ to: "/auth" }); }
+  }, [signedIn, navigate]);
+  if (!signedIn) return null;
   const mine = threads.filter((t) => t.participants.includes(me.id));
   const [openChat, setOpenChat] = useState<string | null>(null);
   const [openCall, setOpenCall] = useState<string | null>(null);

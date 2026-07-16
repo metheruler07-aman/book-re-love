@@ -1,6 +1,6 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
-import { ArrowLeft, MapPin, ShoppingBag, Repeat, HandCoins, Truck, MessageCircle, Phone, CreditCard, QrCode, Wallet, Banknote } from "lucide-react";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { ArrowLeft, MapPin, ShoppingBag, Repeat, HandCoins, Truck, MessageCircle, Phone, CreditCard, QrCode, Wallet, Banknote, Clock, XCircle, Percent } from "lucide-react";
 import { toast } from "sonner";
 import { buybackPrice, useCurrentUser, useStore } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
@@ -27,8 +27,9 @@ export const Route = createFileRoute("/book/$id")({
 
 function BookDetail() {
   const { id } = Route.useParams();
-  const { books, users, commissions } = useStore();
+  const { books, users, commissions, signedIn } = useStore();
   const me = useCurrentUser();
+  const navigate = useNavigate();
   const book = books.find((b) => b.id === id && !b.removed);
   if (!book) throw notFound();
   const seller = users.find((u) => u.id === book.sellerId)!;
@@ -36,8 +37,17 @@ function BookDetail() {
   const commissionPct = commissions.perListing[book.id] ?? commissions.sale;
   const platformCut = Math.round((book.price * commissionPct) / 100);
 
+  const isOwner = me.id === book.sellerId;
+  const isAdmin = me.role === "admin";
+  const isVisible = book.status === "approved" || isOwner || isAdmin;
+
   const [chatOpen, setChatOpen] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
+
+  const requireAuth = (fn: () => void) => () => {
+    if (!signedIn) { toast("Sign in to continue"); navigate({ to: "/auth" }); return; }
+    fn();
+  };
 
   const pm = seller.paymentMethods;
   const paymentBadges = [
@@ -47,11 +57,34 @@ function BookDetail() {
     pm.cod && { icon: Banknote, label: "Cash on delivery" },
   ].filter(Boolean) as { icon: typeof QrCode; label: string }[];
 
+  if (!isVisible) {
+    return (
+      <div className="mx-auto max-w-md p-16 text-center">
+        <h1 className="font-display text-3xl">Not on our shelves</h1>
+        <p className="mt-2 text-muted-foreground">This listing is awaiting admin review.</p>
+        <Button asChild className="mt-6"><Link to="/browse">Back to browse</Link></Button>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <Link to="/browse" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Browse
       </Link>
+
+      {book.status === "pending" && (
+        <div className="mb-6 rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
+          <div className="flex items-center gap-2 font-medium text-accent"><Clock className="h-4 w-4" /> Awaiting admin approval</div>
+          <p className="mt-1 text-muted-foreground">This listing isn't public yet. It'll go live once admin sets the platform cut and approves it.</p>
+        </div>
+      )}
+      {book.status === "rejected" && (
+        <div className="mb-6 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm">
+          <div className="flex items-center gap-2 font-medium text-destructive"><XCircle className="h-4 w-4" /> Rejected by admin</div>
+          {book.rejectionNote && <p className="mt-1 text-muted-foreground">Reason: {book.rejectionNote}</p>}
+        </div>
+      )}
 
       <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr]">
         <div className="paper-grain flex aspect-[3/4] items-center justify-center rounded-lg border border-border bg-secondary/60 text-[10rem]">
@@ -76,6 +109,10 @@ function BookDetail() {
             )}
           </div>
 
+          <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+            <Percent className="h-3 w-3" /> Platform fee: {commissionPct}% (₹{platformCut}) on sale
+          </div>
+
           {book.description && (
             <p className="mt-6 max-w-prose leading-relaxed text-muted-foreground">{book.description}</p>
           )}
@@ -92,22 +129,28 @@ function BookDetail() {
             </div>
           </div>
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => toast.success("Added to cart", { description: `${book.title} — ₹${book.price}` })}>
-              <ShoppingBag className="mr-2 h-4 w-4" /> Buy now
-            </Button>
-            {book.rentPerWeek && (
-              <Button size="lg" variant="outline" onClick={() => toast("Rental requested", { description: `₹${book.rentPerWeek}/week` })}>
-                <Repeat className="mr-2 h-4 w-4" /> Rent
+          {book.status === "approved" ? (
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={requireAuth(() => toast.success("Added to cart", { description: `${book.title} — ₹${book.price}` }))}>
+                <ShoppingBag className="mr-2 h-4 w-4" /> Buy now
               </Button>
-            )}
-            <Button size="lg" variant="outline" onClick={() => setChatOpen(true)}>
-              <MessageCircle className="mr-2 h-4 w-4" /> Chat
-            </Button>
-            <Button size="lg" variant="outline" onClick={() => setCallOpen(true)}>
-              <Phone className="mr-2 h-4 w-4" /> Call
-            </Button>
-          </div>
+              {book.rentPerWeek && (
+                <Button size="lg" variant="outline" onClick={requireAuth(() => toast("Rental requested", { description: `₹${book.rentPerWeek}/week` }))}>
+                  <Repeat className="mr-2 h-4 w-4" /> Rent
+                </Button>
+              )}
+              <Button size="lg" variant="outline" onClick={requireAuth(() => setChatOpen(true))}>
+                <MessageCircle className="mr-2 h-4 w-4" /> Chat
+              </Button>
+              <Button size="lg" variant="outline" onClick={requireAuth(() => setCallOpen(true))}>
+                <Phone className="mr-2 h-4 w-4" /> Call
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-8 rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
+              Buy, rent, chat, and call unlock after admin approves this listing.
+            </div>
+          )}
 
           <Separator className="my-8" />
 
@@ -137,7 +180,7 @@ function BookDetail() {
             </div>
           </div>
 
-          {me.role === "admin" && (
+          {isAdmin && (
             <div className="mt-6 rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
               <div className="font-medium text-accent">Admin view</div>
               <div className="text-muted-foreground">

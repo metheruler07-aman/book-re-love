@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MapPin, Truck, CreditCard, QrCode, Wallet, Banknote } from "lucide-react";
 import { useCurrentUser, useStore, type PaymentMethods } from "@/lib/mock-store";
@@ -22,11 +22,18 @@ export const Route = createFileRoute("/account")({
 
 function Account() {
   const me = useCurrentUser();
-  const { updateUser } = useStore();
+  const { signedIn, updateUser } = useStore();
+  const navigate = useNavigate();
   const [area, setArea] = useState(me.area);
   const [radius, setRadius] = useState<number>(me.radiusKm);
   const [ships, setShips] = useState(me.shipsBeyondRadius);
   const [pm, setPm] = useState<PaymentMethods>(me.paymentMethods);
+
+  useEffect(() => {
+    if (!signedIn) { toast("Sign in to manage your account"); navigate({ to: "/auth" }); }
+  }, [signedIn, navigate]);
+
+  if (!signedIn) return null;
 
   const save = () => {
     updateUser(me.id, { area, radiusKm: radius, shipsBeyondRadius: ships, paymentMethods: pm });

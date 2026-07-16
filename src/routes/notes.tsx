@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { FileText, Plus, ShoppingBag, Download } from "lucide-react";
+import { FileText, Plus, ShoppingBag, Download, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useCurrentUser, useStore } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
@@ -27,11 +27,13 @@ function NotesPage() {
   const [tab, setTab] = useState<"all" | "online" | "printed">("all");
 
   const live = useMemo(() => {
-    const l = notes.filter((n) => !n.removed);
+    const l = notes.filter((n) => !n.removed && n.status === "approved");
     if (tab === "online") return l.filter((n) => n.isDigital);
     if (tab === "printed") return l.filter((n) => !n.isDigital);
     return l;
   }, [notes, tab]);
+
+  const myPending = notes.filter((n) => n.sellerId === me.id && n.status !== "approved" && !n.removed);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -47,6 +49,17 @@ function NotesPage() {
         </div>
         {me.role !== "buyer" && <UploadNoteDialog />}
       </header>
+
+      {myPending.length > 0 && (
+        <div className="mb-6 rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
+          <div className="flex items-center gap-2 font-medium text-accent"><Clock className="h-4 w-4" /> Your submissions awaiting approval</div>
+          <ul className="mt-2 space-y-1 text-muted-foreground">
+            {myPending.map((n) => (
+              <li key={n.id}>• {n.title} — {n.status === "rejected" ? <span className="text-destructive">Rejected</span> : "Pending admin review"}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="mb-6">
         <TabsList>
@@ -111,6 +124,9 @@ function UploadNoteDialog() {
             </div>
             <Switch checked={form.isDigital} onCheckedChange={(v) => setForm({ ...form, isDigital: v })} />
           </div>
+          <p className="rounded-md bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
+            Notes go live once admin approves and sets the platform cut.
+          </p>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
@@ -120,9 +136,9 @@ function UploadNoteDialog() {
               title: form.title, course: form.course, price: Number(form.price),
               pages: Number(form.pages || 0), sellerId: me.id, isDigital: form.isDigital,
             });
-            toast.success("Notes published");
+            toast.success("Submitted for admin approval");
             setOpen(false);
-          }}>Publish</Button>
+          }}>Submit for approval</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

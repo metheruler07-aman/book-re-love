@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as NotesRouteImport } from './routes/notes'
@@ -21,6 +22,11 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BookIdRouteImport } from './routes/book.$id'
 
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellRoute = SellRouteImport.update({
   id: '/sell',
   path: '/sell',
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/notes': typeof NotesRoute
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
+  '/support': typeof SupportRoute
   '/book/$id': typeof BookIdRoute
 }
 export interface FileRoutesByTo {
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/notes': typeof NotesRoute
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
+  '/support': typeof SupportRoute
   '/book/$id': typeof BookIdRoute
 }
 export interface FileRoutesById {
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/notes': typeof NotesRoute
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
+  '/support': typeof SupportRoute
   '/book/$id': typeof BookIdRoute
 }
 export interface FileRouteTypes {
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/recommendations'
     | '/sell'
+    | '/support'
     | '/book/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/recommendations'
     | '/sell'
+    | '/support'
     | '/book/$id'
   id:
     | '__root__'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/recommendations'
     | '/sell'
+    | '/support'
     | '/book/$id'
   fileRoutesById: FileRoutesById
 }
@@ -170,11 +182,19 @@ export interface RootRouteChildren {
   NotesRoute: typeof NotesRoute
   RecommendationsRoute: typeof RecommendationsRoute
   SellRoute: typeof SellRoute
+  SupportRoute: typeof SupportRoute
   BookIdRoute: typeof BookIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sell': {
       id: '/sell'
       path: '/sell'
@@ -266,18 +286,9 @@ const rootRouteChildren: RootRouteChildren = {
   NotesRoute: NotesRoute,
   RecommendationsRoute: RecommendationsRoute,
   SellRoute: SellRoute,
+  SupportRoute: SupportRoute,
   BookIdRoute: BookIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

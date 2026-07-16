@@ -16,7 +16,7 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const { books, requests } = useStore();
-  const featured = books.filter((b) => !b.removed).slice(0, 6);
+  const featured = books.filter((b) => !b.removed && b.status === "approved").slice(0, 6);
   const topRequests = [...requests].sort((a, b) => b.upvotes.length - a.upvotes.length).slice(0, 3);
 
   return (

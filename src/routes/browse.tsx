@@ -28,7 +28,7 @@ function Browse() {
   const [sort, setSort] = useState("newest");
 
   const results = useMemo(() => {
-    let list = books.filter((b) => !b.removed);
+    let list = books.filter((b) => !b.removed && b.status === "approved");
     if (q.trim()) {
       const s = q.toLowerCase();
       list = list.filter((b) => b.title.toLowerCase().includes(s) || b.author.toLowerCase().includes(s));
