@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/sell")({
   head: () => ({
     meta: [
-      { title: "Sell & rent books — Second Chapter" },
+      { title: "Sell & rent books — Book Ledger" },
       { name: "description", content: "List books for sale or rent. Listings go live after admin sets the platform cut and approves." },
     ],
   }),

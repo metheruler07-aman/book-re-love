@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 export const Route = createFileRoute("/account")({
   head: () => ({
     meta: [
-      { title: "Your account — Second Chapter" },
+      { title: "Your account — Book Ledger" },
       { name: "description", content: "Manage your area, self-delivery radius, shipping, and accepted payment methods." },
     ],
   }),

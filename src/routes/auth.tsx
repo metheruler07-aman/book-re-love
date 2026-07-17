@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { BookOpen, Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { useStore, useTheme } from "@/lib/mock-store";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — Second Chapter" },
-      { name: "description", content: "Sign in to Second Chapter to buy, sell, rent, and trade books with readers nearby." },
+      { title: "Sign in — Book Ledger" },
+      { name: "description", content: "Sign in to Book Ledger to buy, sell, rent, and trade books with readers nearby." },
     ],
   }),
   component: Auth,
@@ -22,7 +22,7 @@ function Auth() {
   const { users, signIn } = useStore();
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("ava@secondchapter.app");
+  const [email, setEmail] = useState("ava@bookledger.app");
   const [password, setPassword] = useState("••••••••");
   const [pickedId, setPickedId] = useState(users[0].id);
 
@@ -30,12 +30,7 @@ function Auth() {
     <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2">
       <div className="hidden flex-col justify-between rounded-2xl border border-border bg-secondary/50 p-10 lg:flex paper-grain">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="grid h-10 w-10 place-items-center rounded-md bg-primary text-primary-foreground">
-              <BookOpen className="h-5 w-5" />
-            </span>
-            <span className="font-display text-xl font-semibold">Second Chapter</span>
-          </div>
+          <img src="/book-ledger-logo.svg" alt="Book Ledger" className="h-12 w-auto" />
           <h1 className="mt-16 font-display text-5xl leading-[1.05]">
             Welcome back to <span className="italic text-accent">the reading room</span>.
           </h1>

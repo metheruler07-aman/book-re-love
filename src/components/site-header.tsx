@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { BookOpen, Moon, Sun, LogIn, LogOut, Menu, LifeBuoy, Shield, Store, MessageCircle, Sparkles, Users, ScrollText, Search } from "lucide-react";
+import { Moon, Sun, LogIn, LogOut, Menu, LifeBuoy, Shield, Store, MessageCircle, Sparkles, Users, ScrollText, Search } from "lucide-react";
 import { useCurrentUser, useStore, useTheme } from "@/lib/mock-store";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -39,7 +39,7 @@ export function SiteHeader() {
           </SheetTrigger>
           <SheetContent side="left" className="w-72 p-0">
             <SheetHeader className="border-b border-border p-4">
-              <SheetTitle className="font-display">Second Chapter</SheetTitle>
+              <SheetTitle className="font-display">Book Ledger</SheetTitle>
             </SheetHeader>
             <div className="space-y-6 p-4 text-sm">
               <NavGroup label="Shop">
@@ -61,13 +61,11 @@ export function SiteHeader() {
         </Sheet>
 
         <Link to="/" className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-md bg-primary text-primary-foreground">
-            <BookOpen className="h-5 w-5" />
-          </span>
+          <img src="/book-ledger-icon.svg" alt="" className="h-9 w-9 rounded-md" />
           <div className="leading-tight">
-            <div className="font-display text-lg font-semibold">Second Chapter</div>
+            <div className="font-display text-lg font-semibold">Book Ledger</div>
             <div className="hidden text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:block">
-              A marketplace for readers
+              Buy · Sell · Rent
             </div>
           </div>
         </Link>
@@ -173,7 +171,7 @@ export function SiteFooter() {
     <footer className="mt-24 border-t border-border/70 bg-secondary/40">
       <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-4 py-10 text-sm text-muted-foreground sm:flex-row sm:px-6">
         <div>
-          <div className="font-display text-base text-foreground">Second Chapter</div>
+          <div className="font-display text-base text-foreground">Book Ledger</div>
           <p className="mt-1 max-w-md">
             Give books a second life. Buy, sell, rent, and trade in your neighborhood.
           </p>
@@ -190,6 +188,13 @@ export function SiteFooter() {
           <div>
             <div className="mb-2 font-medium text-foreground">Help</div>
             <ul className="space-y-1"><li>Raise a query</li><li>Buyback</li></ul>
+          </div>
+          <div>
+            <div className="mb-2 font-medium text-foreground">Legal</div>
+            <ul className="space-y-1">
+              <li><Link to="/terms" className="hover:text-foreground">Terms of Service</Link></li>
+              <li><Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link></li>
+            </ul>
           </div>
         </div>
       </div>

@@ -11,8 +11,8 @@ import { ChatDialog, CallDialog } from "@/components/chat-call";
 export const Route = createFileRoute("/book/$id")({
   head: ({ params }) => ({
     meta: [
-      { title: `Book — Second Chapter` },
-      { name: "description", content: `Listing details for book ${params.id} on Second Chapter.` },
+      { title: `Book — Book Ledger` },
+      { name: "description", content: `Listing details for book ${params.id} on Book Ledger.` },
     ],
   }),
   component: BookDetail,

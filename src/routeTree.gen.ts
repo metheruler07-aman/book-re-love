@@ -9,9 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as RecommendationsRouteImport } from './routes/recommendations'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as CommunityRouteImport } from './routes/community'
@@ -22,6 +24,11 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BookIdRouteImport } from './routes/book.$id'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SupportRoute = SupportRouteImport.update({
   id: '/support',
   path: '/support',
@@ -35,6 +42,11 @@ const SellRoute = SellRouteImport.update({
 const RecommendationsRoute = RecommendationsRouteImport.update({
   id: '/recommendations',
   path: '/recommendations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotesRoute = NotesRouteImport.update({
@@ -92,9 +104,11 @@ export interface FileRoutesByFullPath {
   '/community': typeof CommunityRoute
   '/messages': typeof MessagesRoute
   '/notes': typeof NotesRoute
+  '/privacy': typeof PrivacyRoute
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
   '/book/$id': typeof BookIdRoute
 }
 export interface FileRoutesByTo {
@@ -106,9 +120,11 @@ export interface FileRoutesByTo {
   '/community': typeof CommunityRoute
   '/messages': typeof MessagesRoute
   '/notes': typeof NotesRoute
+  '/privacy': typeof PrivacyRoute
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
   '/book/$id': typeof BookIdRoute
 }
 export interface FileRoutesById {
@@ -121,9 +137,11 @@ export interface FileRoutesById {
   '/community': typeof CommunityRoute
   '/messages': typeof MessagesRoute
   '/notes': typeof NotesRoute
+  '/privacy': typeof PrivacyRoute
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
   '/book/$id': typeof BookIdRoute
 }
 export interface FileRouteTypes {
@@ -137,9 +155,11 @@ export interface FileRouteTypes {
     | '/community'
     | '/messages'
     | '/notes'
+    | '/privacy'
     | '/recommendations'
     | '/sell'
     | '/support'
+    | '/terms'
     | '/book/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -151,9 +171,11 @@ export interface FileRouteTypes {
     | '/community'
     | '/messages'
     | '/notes'
+    | '/privacy'
     | '/recommendations'
     | '/sell'
     | '/support'
+    | '/terms'
     | '/book/$id'
   id:
     | '__root__'
@@ -165,9 +187,11 @@ export interface FileRouteTypes {
     | '/community'
     | '/messages'
     | '/notes'
+    | '/privacy'
     | '/recommendations'
     | '/sell'
     | '/support'
+    | '/terms'
     | '/book/$id'
   fileRoutesById: FileRoutesById
 }
@@ -180,14 +204,23 @@ export interface RootRouteChildren {
   CommunityRoute: typeof CommunityRoute
   MessagesRoute: typeof MessagesRoute
   NotesRoute: typeof NotesRoute
+  PrivacyRoute: typeof PrivacyRoute
   RecommendationsRoute: typeof RecommendationsRoute
   SellRoute: typeof SellRoute
   SupportRoute: typeof SupportRoute
+  TermsRoute: typeof TermsRoute
   BookIdRoute: typeof BookIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/support': {
       id: '/support'
       path: '/support'
@@ -207,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/recommendations'
       fullPath: '/recommendations'
       preLoaderRoute: typeof RecommendationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notes': {
@@ -284,9 +324,11 @@ const rootRouteChildren: RootRouteChildren = {
   CommunityRoute: CommunityRoute,
   MessagesRoute: MessagesRoute,
   NotesRoute: NotesRoute,
+  PrivacyRoute: PrivacyRoute,
   RecommendationsRoute: RecommendationsRoute,
   SellRoute: SellRoute,
   SupportRoute: SupportRoute,
+  TermsRoute: TermsRoute,
   BookIdRoute: BookIdRoute,
 }
 export const routeTree = rootRouteImport
