@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 export const Route = createFileRoute("/recommendations")({
   head: () => ({
     meta: [
-      { title: "Recommendations — Second Chapter" },
+      { title: "Recommendations — Book Ledger" },
       { name: "description", content: "Reader-submitted book recommendations. Like your favorites and signal you'd love to rent them." },
     ],
   }),

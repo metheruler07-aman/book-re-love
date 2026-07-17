@@ -11,8 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — Second Chapter" },
-      { name: "description", content: "Sign in to Second Chapter to buy, sell, rent, and trade books with readers nearby." },
+      { title: "Sign in — Book Ledger" },
+      { name: "description", content: "Sign in to Book Ledger to buy, sell, rent, and trade books with readers nearby." },
     ],
   }),
   component: Auth,
@@ -22,7 +22,7 @@ function Auth() {
   const { users, signIn } = useStore();
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("ava@secondchapter.app");
+  const [email, setEmail] = useState("ava@bookledger.app");
   const [password, setPassword] = useState("••••••••");
   const [pickedId, setPickedId] = useState(users[0].id);
 
@@ -34,7 +34,7 @@ function Auth() {
             <span className="grid h-10 w-10 place-items-center rounded-md bg-primary text-primary-foreground">
               <BookOpen className="h-5 w-5" />
             </span>
-            <span className="font-display text-xl font-semibold">Second Chapter</span>
+            <span className="font-display text-xl font-semibold">Book Ledger</span>
           </div>
           <h1 className="mt-16 font-display text-5xl leading-[1.05]">
             Welcome back to <span className="italic text-accent">the reading room</span>.

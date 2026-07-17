@@ -66,10 +66,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Second Chapter — Buy, sell, rent, and trade books" },
+      { title: "Book Ledger — Buy, sell, rent, and trade books" },
       { name: "description", content: "A neighborhood marketplace where readers give books a second life. Buy, sell, rent, sell notes, and request titles from your community." },
-      { name: "author", content: "Second Chapter" },
-      { property: "og:title", content: "Second Chapter" },
+      { name: "author", content: "Book Ledger" },
+      { property: "og:title", content: "Book Ledger" },
       { property: "og:description", content: "Buy, sell, rent, and trade books in your neighborhood." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

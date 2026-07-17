@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/messages")({
   head: () => ({
     meta: [
-      { title: "Messages — Second Chapter" },
+      { title: "Messages — Book Ledger" },
       { name: "description", content: "In-app chat with buyers and sellers. Phone numbers and off-platform contact are blocked." },
     ],
   }),

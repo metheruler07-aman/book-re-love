@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Admin — Second Chapter" },
+      { title: "Admin — Book Ledger" },
       { name: "description", content: "Admin controls for approvals, commissions, listings, queries, and accounts." },
     ],
   }),

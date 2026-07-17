@@ -39,7 +39,7 @@ export function SiteHeader() {
           </SheetTrigger>
           <SheetContent side="left" className="w-72 p-0">
             <SheetHeader className="border-b border-border p-4">
-              <SheetTitle className="font-display">Second Chapter</SheetTitle>
+              <SheetTitle className="font-display">Book Ledger</SheetTitle>
             </SheetHeader>
             <div className="space-y-6 p-4 text-sm">
               <NavGroup label="Shop">
@@ -65,7 +65,7 @@ export function SiteHeader() {
             <BookOpen className="h-5 w-5" />
           </span>
           <div className="leading-tight">
-            <div className="font-display text-lg font-semibold">Second Chapter</div>
+            <div className="font-display text-lg font-semibold">Book Ledger</div>
             <div className="hidden text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:block">
               A marketplace for readers
             </div>
@@ -173,7 +173,7 @@ export function SiteFooter() {
     <footer className="mt-24 border-t border-border/70 bg-secondary/40">
       <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-4 py-10 text-sm text-muted-foreground sm:flex-row sm:px-6">
         <div>
-          <div className="font-display text-base text-foreground">Second Chapter</div>
+          <div className="font-display text-base text-foreground">Book Ledger</div>
           <p className="mt-1 max-w-md">
             Give books a second life. Buy, sell, rent, and trade in your neighborhood.
           </p>

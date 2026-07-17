@@ -13,8 +13,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 export const Route = createFileRoute("/support")({
   head: () => ({
     meta: [
-      { title: "Raise a query — Second Chapter" },
-      { name: "description", content: "Send a question or issue to the Second Chapter team. Admin replies land here." },
+      { title: "Raise a query — Book Ledger" },
+      { name: "description", content: "Send a question or issue to the Book Ledger team. Admin replies land here." },
     ],
   }),
   component: SupportPage,

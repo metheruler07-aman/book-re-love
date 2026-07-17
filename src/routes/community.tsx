@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 export const Route = createFileRoute("/community")({
   head: () => ({
     meta: [
-      { title: "Community board — Second Chapter" },
+      { title: "Community board — Book Ledger" },
       { name: "description", content: "Request the books you're hunting. Upvote requests so the community sees what people want most." },
     ],
   }),

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 160" width="560" height="160">
+  <defs>
+    <linearGradient id="badgeBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#12A292"/>
+      <stop offset="100%" stop-color="#0B655C"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(20,20) scale(0.234)">
+    <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#badgeBg)"/>
+    <polygon points="234,278 234,150 245,110 256,140 267,110 278,150 278,278"
+             fill="#FBF6EC" transform="rotate(0 256 256)"/>
+    <polygon points="234,278 234,150 245,110 256,140 267,110 278,150 278,278"
+             fill="#FBF6EC" opacity="0.92" transform="rotate(120 256 256)"/>
+    <polygon points="234,278 234,150 245,110 256,140 267,110 278,150 278,278"
+             fill="#DA8A2E" transform="rotate(240 256 256)"/>
+    <circle cx="256" cy="256" r="17" fill="#2B2418"/>
+    <circle cx="256" cy="256" r="17" fill="none" stroke="#FBF6EC" stroke-width="2" opacity="0.5"/>
+  </g>
+  <text x="150" y="88" font-family="Arial, sans-serif" font-weight="800"
+        font-size="42" letter-spacing="-1" fill="#2B2418">Book Ledger</text>
+  <text x="151" y="112" font-family="Arial, sans-serif" font-weight="700"
+        font-size="12" letter-spacing="2.5" fill="#8A7F6A">BUY · SELL · RENT</text>
+</svg>

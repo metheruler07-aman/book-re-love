@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/notes")({
   head: () => ({
     meta: [
-      { title: "Class notes marketplace — Second Chapter" },
+      { title: "Class notes marketplace — Book Ledger" },
       { name: "description", content: "Printed and online (PDF) class notes sold by students who already survived the semester." },
     ],
   }),

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Second Chapter — A neighborhood book marketplace" },
+      { title: "Book Ledger — A neighborhood book marketplace" },
       { name: "description", content: "Buy, sell, rent, and trade books with readers nearby. Sell your class notes. Request the titles you're hunting." },
     ],
   }),
@@ -34,7 +34,7 @@ function Home() {
             </h1>
             <p className="mt-6 max-w-xl text-lg text-muted-foreground">
               Buy pre-loved books, rent by the week, sell class notes, or list what's on your shelf.
-              Second Chapter connects readers by neighborhood — with an honest buyback when you're done.
+              Book Ledger connects readers by neighborhood — with an honest buyback when you're done.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">

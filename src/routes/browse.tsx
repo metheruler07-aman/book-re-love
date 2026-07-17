@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/browse")({
   head: () => ({
     meta: [
-      { title: "Browse books — Second Chapter" },
+      { title: "Browse books — Book Ledger" },
       { name: "description", content: "Browse pre-loved books listed by readers near you. Filter by condition, category, and area." },
     ],
   }),

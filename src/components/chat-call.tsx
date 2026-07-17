@@ -106,14 +106,14 @@ export function CallDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm text-center">
         <DialogHeader>
-          <DialogTitle className="text-center font-display text-xl">Second Chapter call</DialogTitle>
+          <DialogTitle className="text-center font-display text-xl">Book Ledger call</DialogTitle>
         </DialogHeader>
         <div className="mx-auto my-6 grid h-24 w-24 place-items-center rounded-full bg-accent/15 text-accent">
           <Phone className={`h-10 w-10 ${connected ? "" : "animate-pulse"}`} />
         </div>
         <div className="font-display text-2xl">{other.name}</div>
         <div className="mt-1 text-xs text-muted-foreground">
-          Both numbers are hidden. Routed through Second Chapter.
+          Both numbers are hidden. Routed through Book Ledger.
         </div>
         <div className="mt-4 font-mono text-lg">
           {connected ? mmss : "Connecting…"}
