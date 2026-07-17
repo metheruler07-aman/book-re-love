@@ -61,13 +61,11 @@ export function SiteHeader() {
         </Sheet>
 
         <Link to="/" className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-md bg-primary text-primary-foreground">
-            <BookOpen className="h-5 w-5" />
-          </span>
+          <img src="/book-ledger-icon.svg" alt="" className="h-9 w-9 rounded-md" />
           <div className="leading-tight">
             <div className="font-display text-lg font-semibold">Book Ledger</div>
             <div className="hidden text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:block">
-              A marketplace for readers
+              Buy · Sell · Rent
             </div>
           </div>
         </Link>
