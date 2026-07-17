@@ -11,14 +11,17 @@ const conditionTone: Record<Book["condition"], string> = {
 };
 
 export function BookCard({ book }: { book: Book }) {
+  const hero = book.photos[0];
   return (
     <Link
       to="/book/$id"
       params={{ id: book.id }}
       className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
     >
-      <div className="paper-grain relative flex aspect-[3/4] items-center justify-center bg-secondary/60 text-6xl">
-        <span className="drop-shadow-sm">{book.cover}</span>
+      <div className="paper-grain relative flex aspect-[3/4] items-center justify-center overflow-hidden bg-secondary/60 text-6xl">
+        {hero
+          ? <img src={hero} alt={book.title} className="h-full w-full object-cover" />
+          : <span className="drop-shadow-sm">{book.cover}</span>}
         <Badge className={`absolute right-2 top-2 border ${conditionTone[book.condition]}`} variant="outline">
           {book.condition}
         </Badge>

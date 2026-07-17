@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Moon, Sun, LogIn, LogOut, Menu, LifeBuoy, Shield, Store, MessageCircle, Sparkles, Users, ScrollText, Search } from "lucide-react";
+import { Moon, Sun, LogIn, LogOut, Menu, LifeBuoy, Shield, Store, MessageCircle, Sparkles, Users, ScrollText, Search, Package } from "lucide-react";
 import { useCurrentUser, useStore, useTheme } from "@/lib/mock-store";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -51,6 +51,7 @@ export function SiteHeader() {
               {signedIn && (
                 <NavGroup label="You">
                   <DrawerLink to="/messages" icon={MessageCircle} label="Messages" onNav={closeDrawer} />
+                  <DrawerLink to="/orders" icon={Package} label="Orders" onNav={closeDrawer} />
                   <DrawerLink to="/support" icon={LifeBuoy} label="Raise a query" onNav={closeDrawer} />
                   {me.role !== "buyer" && <DrawerLink to="/sell" icon={Store} label="Sell / rent" onNav={closeDrawer} />}
                   {me.role === "admin" && <DrawerLink to="/admin" icon={Shield} label="Admin console" onNav={closeDrawer} />}
@@ -83,13 +84,10 @@ export function SiteHeader() {
             </Link>
           ))}
           {signedIn && (
-            <Link
-              to="/messages"
-              activeProps={{ className: "bg-secondary text-secondary-foreground" }}
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Messages
-            </Link>
+            <>
+              <Link to="/messages" activeProps={{ className: "bg-secondary text-secondary-foreground" }} className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Messages</Link>
+              <Link to="/orders" activeProps={{ className: "bg-secondary text-secondary-foreground" }} className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Orders</Link>
+            </>
           )}
         </nav>
 
