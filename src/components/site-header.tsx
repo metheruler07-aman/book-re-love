@@ -51,6 +51,7 @@ export function SiteHeader() {
               {signedIn && (
                 <NavGroup label="You">
                   <DrawerLink to="/messages" icon={MessageCircle} label="Messages" onNav={closeDrawer} />
+                  <DrawerLink to="/orders" icon={Package} label="Orders" onNav={closeDrawer} />
                   <DrawerLink to="/support" icon={LifeBuoy} label="Raise a query" onNav={closeDrawer} />
                   {me.role !== "buyer" && <DrawerLink to="/sell" icon={Store} label="Sell / rent" onNav={closeDrawer} />}
                   {me.role === "admin" && <DrawerLink to="/admin" icon={Shield} label="Admin console" onNav={closeDrawer} />}
