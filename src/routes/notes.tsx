@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { FileText, Plus, ShoppingBag, Download, Clock } from "lucide-react";
+import { FileText, Plus, ShoppingBag, Download, Clock, ImagePlus, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { useCurrentUser, useStore } from "@/lib/mock-store";
+import { filesToDataUrls, useCurrentUser, useStore } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,6 +74,9 @@ function NotesPage() {
           const seller = users.find((u) => u.id === n.sellerId);
           return (
             <div key={n.id} className="flex flex-col rounded-lg border border-border bg-card p-5 transition hover:border-primary/40">
+              {n.photos[0] && (
+                <img src={n.photos[0]} alt="" className="mb-3 aspect-video w-full rounded object-cover" />
+              )}
               <div className="flex items-start justify-between gap-2">
                 <Badge variant="outline">{n.course}</Badge>
                 <Badge variant={n.isDigital ? "default" : "secondary"} className={n.isDigital ? "bg-accent text-accent-foreground" : ""}>
@@ -102,13 +105,14 @@ function UploadNoteDialog() {
   const { addNote } = useStore();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", course: "", price: "", pages: "", isDigital: true });
+  const [photos, setPhotos] = useState<string[]>([]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setPhotos([]); setForm({ title: "", course: "", price: "", pages: "", isDigital: true }); } }}>
       <DialogTrigger asChild>
         <Button className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="mr-2 h-4 w-4" /> Upload notes</Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Upload class notes</DialogTitle></DialogHeader>
         <div className="grid gap-3 py-2">
           <Row label="Title"><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Row>
@@ -117,6 +121,25 @@ function UploadNoteDialog() {
             <Row label="Price (₹)"><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></Row>
             <Row label="Pages"><Input type="number" value={form.pages} onChange={(e) => setForm({ ...form, pages: e.target.value })} /></Row>
           </div>
+          <Row label="Preview photos (required)">
+            <div className="flex flex-wrap gap-2">
+              {photos.map((p, i) => (
+                <div key={i} className="relative h-20 w-20 overflow-hidden rounded border border-border">
+                  <img src={p} alt="" className="h-full w-full object-cover" />
+                  <button type="button" onClick={() => setPhotos(photos.filter((_, j) => j !== i))} className="absolute right-0.5 top-0.5 rounded bg-background/80 p-0.5 text-destructive"><XCircle className="h-4 w-4" /></button>
+                </div>
+              ))}
+              <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded border border-dashed border-border text-xs text-muted-foreground hover:bg-secondary/40">
+                <ImagePlus className="h-4 w-4" />Add
+                <input type="file" accept="image/*" multiple hidden onChange={async (e) => {
+                  if (!e.target.files) return;
+                  const urls = await filesToDataUrls(e.target.files);
+                  setPhotos([...photos, ...urls]);
+                  e.target.value = "";
+                }} />
+              </label>
+            </div>
+          </Row>
           <div className="flex items-center justify-between rounded-md border border-border bg-secondary/40 p-3">
             <div>
               <div className="text-sm font-medium">Online (PDF)</div>
@@ -132,9 +155,10 @@ function UploadNoteDialog() {
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={() => {
             if (!form.title || !form.course || !form.price) { toast.error("Fill required fields"); return; }
+            if (photos.length === 0) { toast.error("Add at least one preview photo"); return; }
             addNote({
               title: form.title, course: form.course, price: Number(form.price),
-              pages: Number(form.pages || 0), sellerId: me.id, isDigital: form.isDigital,
+              pages: Number(form.pages || 0), sellerId: me.id, isDigital: form.isDigital, photos,
             });
             toast.success("Submitted for admin approval");
             setOpen(false);

@@ -1,11 +1,16 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowLeft, MapPin, ShoppingBag, Repeat, HandCoins, Truck, MessageCircle, Phone, CreditCard, QrCode, Wallet, Banknote, Clock, XCircle, Percent } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, MapPin, ShoppingBag, Repeat, HandCoins, Truck, MessageCircle, Phone, CreditCard, QrCode, Wallet, Banknote, Clock, XCircle, Percent, Handshake } from "lucide-react";
 import { toast } from "sonner";
-import { buybackPrice, useCurrentUser, useStore } from "@/lib/mock-store";
+import { buybackPrice, useCurrentUser, useStore, type DeliveryMode, type PaymentKey } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ChatDialog, CallDialog } from "@/components/chat-call";
 
 export const Route = createFileRoute("/book/$id")({
@@ -25,9 +30,16 @@ export const Route = createFileRoute("/book/$id")({
   ),
 });
 
+const PAY_META: Record<PaymentKey, { icon: typeof QrCode; label: string }> = {
+  upi:    { icon: QrCode,    label: "UPI / QR" },
+  card:   { icon: CreditCard, label: "Card" },
+  wallet: { icon: Wallet,    label: "Wallet" },
+  cod:    { icon: Banknote,  label: "Cash on delivery" },
+};
+
 function BookDetail() {
   const { id } = Route.useParams();
-  const { books, users, commissions, signedIn } = useStore();
+  const { books, users, commissions, signedIn, createOffer, createOrder, sendMessage } = useStore();
   const me = useCurrentUser();
   const navigate = useNavigate();
   const book = books.find((b) => b.id === id && !b.removed);
@@ -43,19 +55,20 @@ function BookDetail() {
 
   const [chatOpen, setChatOpen] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
+  const [heroIdx, setHeroIdx] = useState(0);
+  const [checkoutKind, setCheckoutKind] = useState<"buy" | "rent" | null>(null);
+  const [bargainOpen, setBargainOpen] = useState(false);
 
   const requireAuth = (fn: () => void) => () => {
     if (!signedIn) { toast("Sign in to continue"); navigate({ to: "/auth" }); return; }
     fn();
   };
 
-  const pm = seller.paymentMethods;
-  const paymentBadges = [
-    pm.upi && { icon: QrCode, label: "UPI / QR" },
-    pm.card && { icon: CreditCard, label: "Card" },
-    pm.wallet && { icon: Wallet, label: "Wallet" },
-    pm.cod && { icon: Banknote, label: "Cash on delivery" },
-  ].filter(Boolean) as { icon: typeof QrCode; label: string }[];
+  const paymentBadges = (Object.keys(PAY_META) as PaymentKey[])
+    .filter((k) => seller.paymentMethods[k])
+    .map((k) => ({ key: k, ...PAY_META[k] }));
+
+  const hero = book.photos[heroIdx] ?? book.photos[0];
 
   if (!isVisible) {
     return (
@@ -76,7 +89,7 @@ function BookDetail() {
       {book.status === "pending" && (
         <div className="mb-6 rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
           <div className="flex items-center gap-2 font-medium text-accent"><Clock className="h-4 w-4" /> Awaiting admin approval</div>
-          <p className="mt-1 text-muted-foreground">This listing isn't public yet. It'll go live once admin sets the platform cut and approves it.</p>
+          <p className="mt-1 text-muted-foreground">This listing isn't public yet.</p>
         </div>
       )}
       {book.status === "rejected" && (
@@ -87,8 +100,25 @@ function BookDetail() {
       )}
 
       <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr]">
-        <div className="paper-grain flex aspect-[3/4] items-center justify-center rounded-lg border border-border bg-secondary/60 text-[10rem]">
-          {book.cover}
+        <div>
+          <div className="paper-grain flex aspect-[3/4] items-center justify-center overflow-hidden rounded-lg border border-border bg-secondary/60 text-[10rem]">
+            {hero
+              ? <img src={hero} alt={book.title} className="h-full w-full object-cover" />
+              : book.cover}
+          </div>
+          {book.photos.length > 1 && (
+            <div className="mt-3 grid grid-cols-5 gap-2">
+              {book.photos.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => setHeroIdx(i)}
+                  className={`aspect-square overflow-hidden rounded border ${i === heroIdx ? "border-primary" : "border-border"}`}
+                >
+                  <img src={p} alt="" className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>
@@ -129,16 +159,27 @@ function BookDetail() {
             </div>
           </div>
 
+          <div className="mt-4">
+            <div className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">Delivery</div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              {book.deliveryOptions.selfDeliver && <Badge variant="secondary" className="gap-1"><Truck className="h-3 w-3" /> Self-delivery within {seller.radiusKm} km</Badge>}
+              {book.deliveryOptions.courier    && <Badge variant="secondary" className="gap-1"><Truck className="h-3 w-3" /> Courier (arranged in chat, buyer pays)</Badge>}
+            </div>
+          </div>
+
           {book.status === "approved" ? (
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={requireAuth(() => toast.success("Added to cart", { description: `${book.title} — ₹${book.price}` }))}>
+              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={requireAuth(() => setCheckoutKind("buy"))}>
                 <ShoppingBag className="mr-2 h-4 w-4" /> Buy now
               </Button>
               {book.rentPerWeek && (
-                <Button size="lg" variant="outline" onClick={requireAuth(() => toast("Rental requested", { description: `₹${book.rentPerWeek}/week` }))}>
+                <Button size="lg" variant="outline" onClick={requireAuth(() => setCheckoutKind("rent"))}>
                   <Repeat className="mr-2 h-4 w-4" /> Rent
                 </Button>
               )}
+              <Button size="lg" variant="outline" onClick={requireAuth(() => setBargainOpen(true))}>
+                <Handshake className="mr-2 h-4 w-4" /> Make an offer
+              </Button>
               <Button size="lg" variant="outline" onClick={requireAuth(() => setChatOpen(true))}>
                 <MessageCircle className="mr-2 h-4 w-4" /> Chat
               </Button>
@@ -163,10 +204,6 @@ function BookDetail() {
               <div className="text-xs text-muted-foreground">
                 {seller.area} · self-delivery {seller.radiusKm} km
               </div>
-              <div className="mt-2 flex items-center gap-1 text-xs">
-                <Truck className="h-3 w-3" />
-                {seller.shipsBeyondRadius ? "Ships beyond radius (buyer pays courier)" : "Delivery only within radius"}
-              </div>
             </div>
 
             <div className="rounded-lg border border-border bg-card p-4">
@@ -179,22 +216,194 @@ function BookDetail() {
               </div>
             </div>
           </div>
-
-          {isAdmin && (
-            <div className="mt-6 rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
-              <div className="font-medium text-accent">Admin view</div>
-              <div className="text-muted-foreground">
-                Commission applied: <span className="font-semibold text-foreground">{commissionPct}%</span> · Platform cut on this listing:{" "}
-                <span className="font-semibold text-foreground">₹{platformCut}</span>
-                {commissions.perListing[book.id] !== undefined && " (per-listing override)"}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
       <ChatDialog open={chatOpen} onOpenChange={setChatOpen} otherId={seller.id} bookId={book.id} />
       <CallDialog open={callOpen} onOpenChange={setCallOpen} otherId={seller.id} />
+
+      <BargainDialog
+        open={bargainOpen}
+        onOpenChange={setBargainOpen}
+        listedPrice={book.price}
+        onSubmit={(amt, msg) => {
+          createOffer(book.id, amt, msg);
+          toast.success("Offer sent", { description: `₹${amt} — waiting for seller` });
+        }}
+      />
+
+      {checkoutKind && (
+        <CheckoutDialog
+          open={!!checkoutKind}
+          onOpenChange={(v) => !v && setCheckoutKind(null)}
+          kind={checkoutKind}
+          book={book}
+          seller={seller}
+          onConfirm={({ paymentMethod, deliveryMode, rentalWeeks, amount }) => {
+            const order = createOrder({
+              bookId: book.id, kind: checkoutKind, rentalWeeks, amount, paymentMethod, deliveryMode,
+            });
+            setCheckoutKind(null);
+            if (deliveryMode === "courier") {
+              sendMessage(seller.id, `Hi ${seller.name} — order ${order.id.slice(-4)} placed. Let's arrange courier: my address and any preferred courier? (Buyer pays courier.)`, book.id);
+              toast.success("Order placed", { description: "Chat opened to arrange courier." });
+              navigate({ to: "/orders" });
+            } else {
+              toast.success("Order placed", { description: "Check /orders for your handoff code." });
+              navigate({ to: "/orders" });
+            }
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function BargainDialog({ open, onOpenChange, listedPrice, onSubmit }: {
+  open: boolean; onOpenChange: (v: boolean) => void; listedPrice: number;
+  onSubmit: (amount: number, msg?: string) => void;
+}) {
+  const [amt, setAmt] = useState(String(Math.max(1, Math.round(listedPrice * 0.85))));
+  const [msg, setMsg] = useState("");
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle className="font-display">Make an offer</DialogTitle></DialogHeader>
+        <div className="grid gap-3 py-2">
+          <div className="text-xs text-muted-foreground">Listed at ₹{listedPrice}. Seller may accept, decline, or counter.</div>
+          <div className="grid gap-1.5"><Label className="text-xs">Your offer (₹)</Label><Input type="number" value={amt} onChange={(e) => setAmt(e.target.value)} /></div>
+          <div className="grid gap-1.5"><Label className="text-xs">Note to seller (optional)</Label><Textarea rows={3} value={msg} onChange={(e) => setMsg(e.target.value)} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={() => {
+            const n = Number(amt);
+            if (!n || n <= 0) { toast.error("Enter a valid amount"); return; }
+            onSubmit(n, msg || undefined);
+            onOpenChange(false);
+          }}>Send offer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CheckoutDialog({
+  open, onOpenChange, kind, book, seller, onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  kind: "buy" | "rent";
+  book: ReturnType<typeof useStore>["books"][number];
+  seller: ReturnType<typeof useStore>["users"][number];
+  onConfirm: (v: { paymentMethod: PaymentKey; deliveryMode: DeliveryMode; rentalWeeks?: number; amount: number }) => void;
+}) {
+  const availableMethods = (Object.keys(PAY_META) as PaymentKey[]).filter((k) => seller.paymentMethods[k]);
+  const availableDelivery: DeliveryMode[] = [
+    book.deliveryOptions.selfDeliver ? "self" : null,
+    book.deliveryOptions.courier ? "courier" : null,
+  ].filter(Boolean) as DeliveryMode[];
+
+  const [pay, setPay] = useState<PaymentKey | "">(availableMethods[0] ?? "");
+  const [mode, setMode] = useState<DeliveryMode | "">(availableDelivery[0] ?? "");
+  const [weeks, setWeeks] = useState<number>(1);
+
+  const amount = useMemo(() => {
+    if (kind === "buy") return book.price;
+    return (book.rentPerWeek ?? 0) * weeks;
+  }, [kind, book, weeks]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-display text-2xl">{kind === "buy" ? "Checkout" : "Rent book"}</DialogTitle>
+        </DialogHeader>
+
+        <div className="grid gap-4 py-2">
+          {kind === "rent" && (
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Rental duration (weeks)</Label>
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 3, 4, 6, 8].map((w) => (
+                  <button
+                    key={w}
+                    onClick={() => setWeeks(w)}
+                    className={`rounded-md border px-3 py-1.5 text-sm ${weeks === w ? "border-primary bg-primary/10 text-primary" : "border-border"}`}
+                  >
+                    {w} wk
+                  </button>
+                ))}
+                <Input type="number" min={1} value={weeks} onChange={(e) => setWeeks(Math.max(1, Number(e.target.value) || 1))} className="w-24" />
+              </div>
+              <div className="text-xs text-muted-foreground">₹{book.rentPerWeek}/wk × {weeks} wk</div>
+            </div>
+          )}
+
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Delivery</Label>
+            {availableDelivery.length === 0 ? (
+              <div className="text-xs text-destructive">Seller hasn't set a delivery method.</div>
+            ) : (
+              <RadioGroup value={mode} onValueChange={(v) => setMode(v as DeliveryMode)} className="grid gap-2">
+                {availableDelivery.includes("self") && (
+                  <label className="flex items-start gap-2 rounded-md border border-border p-3 text-sm">
+                    <RadioGroupItem value="self" />
+                    <div>
+                      <div className="font-medium">Self-delivery within {seller.radiusKm} km</div>
+                      <div className="text-xs text-muted-foreground">Seller hands the book to you in person. You'll get a 4-digit code to give at handoff.</div>
+                    </div>
+                  </label>
+                )}
+                {availableDelivery.includes("courier") && (
+                  <label className="flex items-start gap-2 rounded-md border border-border p-3 text-sm">
+                    <RadioGroupItem value="courier" />
+                    <div>
+                      <div className="font-medium">Courier (arranged in chat)</div>
+                      <div className="text-xs text-muted-foreground">You and seller exchange address in chat. Buyer pays courier. Confirm receipt with a photo.</div>
+                    </div>
+                  </label>
+                )}
+              </RadioGroup>
+            )}
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Payment method (seller's accepted)</Label>
+            {availableMethods.length === 0 ? (
+              <div className="text-xs text-destructive">Seller hasn't set any payment methods.</div>
+            ) : (
+              <RadioGroup value={pay} onValueChange={(v) => setPay(v as PaymentKey)} className="grid grid-cols-2 gap-2">
+                {availableMethods.map((k) => {
+                  const M = PAY_META[k];
+                  return (
+                    <label key={k} className="flex items-center gap-2 rounded-md border border-border p-2 text-sm">
+                      <RadioGroupItem value={k} />
+                      <M.icon className="h-4 w-4" /> {M.label}
+                    </label>
+                  );
+                })}
+              </RadioGroup>
+            )}
+          </div>
+
+          <div className="rounded-md bg-secondary/60 p-3 text-sm">
+            Total: <span className="font-display text-xl">₹{amount}</span>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button
+            onClick={() => {
+              if (!pay || !mode) { toast.error("Pick delivery and payment"); return; }
+              onConfirm({ paymentMethod: pay, deliveryMode: mode, rentalWeeks: kind === "rent" ? weeks : undefined, amount });
+            }}
+          >
+            Place order
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
