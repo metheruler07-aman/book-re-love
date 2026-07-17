@@ -14,6 +14,7 @@ import { Route as SupportRouteImport } from './routes/support'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as CommunityRouteImport } from './routes/community'
@@ -47,6 +48,11 @@ const RecommendationsRoute = RecommendationsRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrdersRoute = OrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotesRoute = NotesRouteImport.update({
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/community': typeof CommunityRoute
   '/messages': typeof MessagesRoute
   '/notes': typeof NotesRoute
+  '/orders': typeof OrdersRoute
   '/privacy': typeof PrivacyRoute
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/community': typeof CommunityRoute
   '/messages': typeof MessagesRoute
   '/notes': typeof NotesRoute
+  '/orders': typeof OrdersRoute
   '/privacy': typeof PrivacyRoute
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/community': typeof CommunityRoute
   '/messages': typeof MessagesRoute
   '/notes': typeof NotesRoute
+  '/orders': typeof OrdersRoute
   '/privacy': typeof PrivacyRoute
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/community'
     | '/messages'
     | '/notes'
+    | '/orders'
     | '/privacy'
     | '/recommendations'
     | '/sell'
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/community'
     | '/messages'
     | '/notes'
+    | '/orders'
     | '/privacy'
     | '/recommendations'
     | '/sell'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/community'
     | '/messages'
     | '/notes'
+    | '/orders'
     | '/privacy'
     | '/recommendations'
     | '/sell'
@@ -204,6 +216,7 @@ export interface RootRouteChildren {
   CommunityRoute: typeof CommunityRoute
   MessagesRoute: typeof MessagesRoute
   NotesRoute: typeof NotesRoute
+  OrdersRoute: typeof OrdersRoute
   PrivacyRoute: typeof PrivacyRoute
   RecommendationsRoute: typeof RecommendationsRoute
   SellRoute: typeof SellRoute
@@ -247,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orders': {
+      id: '/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof OrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notes': {
@@ -324,6 +344,7 @@ const rootRouteChildren: RootRouteChildren = {
   CommunityRoute: CommunityRoute,
   MessagesRoute: MessagesRoute,
   NotesRoute: NotesRoute,
+  OrdersRoute: OrdersRoute,
   PrivacyRoute: PrivacyRoute,
   RecommendationsRoute: RecommendationsRoute,
   SellRoute: SellRoute,
