@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { BookOpen, Moon, Sun, LogIn, LogOut, Menu, LifeBuoy, Shield, Store, MessageCircle, Sparkles, Users, ScrollText, Search } from "lucide-react";
+import { Moon, Sun, LogIn, LogOut, Menu, LifeBuoy, Shield, Store, MessageCircle, Sparkles, Users, ScrollText, Search } from "lucide-react";
 import { useCurrentUser, useStore, useTheme } from "@/lib/mock-store";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -188,6 +188,13 @@ export function SiteFooter() {
           <div>
             <div className="mb-2 font-medium text-foreground">Help</div>
             <ul className="space-y-1"><li>Raise a query</li><li>Buyback</li></ul>
+          </div>
+          <div>
+            <div className="mb-2 font-medium text-foreground">Legal</div>
+            <ul className="space-y-1">
+              <li><Link to="/terms" className="hover:text-foreground">Terms of Service</Link></li>
+              <li><Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link></li>
+            </ul>
           </div>
         </div>
       </div>
