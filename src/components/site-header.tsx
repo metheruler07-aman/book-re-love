@@ -84,13 +84,10 @@ export function SiteHeader() {
             </Link>
           ))}
           {signedIn && (
-            <Link
-              to="/messages"
-              activeProps={{ className: "bg-secondary text-secondary-foreground" }}
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Messages
-            </Link>
+            <>
+              <Link to="/messages" activeProps={{ className: "bg-secondary text-secondary-foreground" }} className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Messages</Link>
+              <Link to="/orders" activeProps={{ className: "bg-secondary text-secondary-foreground" }} className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Orders</Link>
+            </>
           )}
         </nav>
 
