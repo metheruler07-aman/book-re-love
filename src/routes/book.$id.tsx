@@ -239,13 +239,13 @@ function BookDetail() {
           kind={checkoutKind}
           book={book}
           seller={seller}
-          onConfirm={({ paymentMethod, deliveryMode, rentalWeeks, amount }) => {
-            const order = createOrder({
+          onConfirm={async ({ paymentMethod, deliveryMode, rentalWeeks, amount }) => {
+            const order = await createOrder({
               bookId: book.id, kind: checkoutKind, rentalWeeks, amount, paymentMethod, deliveryMode,
             });
             setCheckoutKind(null);
             if (deliveryMode === "courier") {
-              sendMessage(seller.id, `Hi ${seller.name} — order ${order.id.slice(-4)} placed. Let's arrange courier: my address and any preferred courier? (Buyer pays courier.)`, book.id);
+              await sendMessage(seller.id, `Hi ${seller.name} — order ${order.id.slice(-4)} placed. Let's arrange courier: my address and any preferred courier? (Buyer pays courier.)`, book.id);
               toast.success("Order placed", { description: "Chat opened to arrange courier." });
               navigate({ to: "/orders" });
             } else {
