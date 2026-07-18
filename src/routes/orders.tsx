@@ -114,8 +114,8 @@ function OrderCard({ order, viewer }: { order: Order; viewer: "buyer" | "seller"
               <label className="text-xs text-muted-foreground">Enter buyer's 4-digit code</label>
               <Input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))} className="w-32 font-mono text-lg tracking-widest" />
             </div>
-            <Button onClick={() => {
-              const r = confirmHandoff(order.id, code);
+            <Button onClick={async () => {
+              const r = await confirmHandoff(order.id, code);
               if (r.ok) toast.success("Handoff confirmed — marked as delivered");
               else toast.error("Code doesn't match");
             }}>Confirm handoff</Button>
@@ -180,6 +180,8 @@ function StatusPill({ status }: { status: Order["status"] }) {
     awaiting_handoff:  { label: "Awaiting handoff",  cls: "bg-accent/15 text-accent border-accent/30",       icon: Clock },
     awaiting_delivery: { label: "Awaiting delivery", cls: "bg-primary/10 text-primary border-primary/30",    icon: Truck },
     delivered:         { label: "Delivered",         cls: "bg-secondary text-secondary-foreground",          icon: CheckCircle2 },
+    completed:         { label: "Completed",         cls: "bg-secondary text-secondary-foreground",          icon: CheckCircle2 },
+    overdue_review:    { label: "Overdue — review",  cls: "bg-destructive/10 text-destructive border-destructive/30", icon: Clock },
     cancelled:         { label: "Cancelled",         cls: "bg-destructive/10 text-destructive border-destructive/30", icon: Clock },
   };
   const M = map[status];

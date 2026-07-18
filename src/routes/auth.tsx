@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
-import { useStore, useTheme } from "@/lib/mock-store";
+import { supabase } from "@/integrations/supabase/client";
+import { useTheme } from "@/lib/mock-store";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -19,12 +20,38 @@ export const Route = createFileRoute("/auth")({
 });
 
 function Auth() {
-  const { users, signIn } = useStore();
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("ava@bookledger.app");
-  const [password, setPassword] = useState("••••••••");
-  const [pickedId, setPickedId] = useState(users[0].id);
+  const [busy, setBusy] = useState(false);
+
+  const [siEmail, setSiEmail] = useState("");
+  const [siPassword, setSiPassword] = useState("");
+
+  const [suName, setSuName] = useState("");
+  const [suEmail, setSuEmail] = useState("");
+  const [suPassword, setSuPassword] = useState("");
+
+  const signIn = async () => {
+    setBusy(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: siEmail, password: siPassword });
+    setBusy(false);
+    if (error) return toast.error("Sign-in failed", { description: error.message });
+    toast.success("Welcome back");
+    navigate({ to: "/" });
+  };
+
+  const signUp = async () => {
+    setBusy(true);
+    const { error } = await supabase.auth.signUp({
+      email: suEmail,
+      password: suPassword,
+      options: { data: { name: suName }, emailRedirectTo: `${window.location.origin}/` },
+    });
+    setBusy(false);
+    if (error) return toast.error("Sign-up failed", { description: error.message });
+    toast.success("Account created", { description: "You're signed in as a buyer." });
+    navigate({ to: "/account" });
+  };
 
   return (
     <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2">
@@ -39,7 +66,7 @@ function Auth() {
           </p>
         </div>
         <blockquote className="max-w-sm border-l-2 border-accent pl-4 text-sm italic text-muted-foreground">
-          “A room without books is like a body without a soul.”
+          "A room without books is like a body without a soul."
           <div className="mt-1 not-italic text-xs">— Cicero</div>
         </blockquote>
       </div>
@@ -64,46 +91,32 @@ function Auth() {
           <TabsContent value="signin" className="mt-6 space-y-4">
             <div className="grid gap-1.5">
               <Label>Email</Label>
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
+              <Input value={siEmail} onChange={(e) => setSiEmail(e.target.value)} type="email" placeholder="you@example.com" />
             </div>
             <div className="grid gap-1.5">
               <Label>Password</Label>
-              <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
-            </div>
-            <div className="rounded-md border border-dashed border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
-              Prototype mode — pick which demo account to sign in as:
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {users.map((u) => (
-                  <button
-                    key={u.id}
-                    onClick={() => setPickedId(u.id)}
-                    className={`rounded-md border px-2 py-1 text-left text-xs transition ${
-                      pickedId === u.id
-                        ? "border-accent bg-accent/10 text-accent"
-                        : "border-border bg-background text-foreground hover:border-primary/40"
-                    }`}
-                  >
-                    <div className="font-medium">{u.name}</div>
-                    <div className="text-muted-foreground capitalize">{u.role}</div>
-                  </button>
-                ))}
-              </div>
+              <Input value={siPassword} onChange={(e) => setSiPassword(e.target.value)} type="password" />
             </div>
             <Button
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => { signIn(pickedId); toast.success("Signed in"); navigate({ to: "/" }); }}
+              disabled={busy || !siEmail || !siPassword}
+              onClick={signIn}
             >
               Sign in
             </Button>
           </TabsContent>
 
           <TabsContent value="signup" className="mt-6 space-y-4">
-            <div className="grid gap-1.5"><Label>Full name</Label><Input placeholder="Your name" /></div>
-            <div className="grid gap-1.5"><Label>Email</Label><Input type="email" placeholder="you@example.com" /></div>
-            <div className="grid gap-1.5"><Label>Password</Label><Input type="password" placeholder="Create a password" /></div>
+            <div className="grid gap-1.5"><Label>Full name</Label><Input value={suName} onChange={(e) => setSuName(e.target.value)} placeholder="Your name" /></div>
+            <div className="grid gap-1.5"><Label>Email</Label><Input value={suEmail} onChange={(e) => setSuEmail(e.target.value)} type="email" placeholder="you@example.com" /></div>
+            <div className="grid gap-1.5"><Label>Password</Label><Input value={suPassword} onChange={(e) => setSuPassword(e.target.value)} type="password" placeholder="At least 6 characters" /></div>
+            <p className="text-xs text-muted-foreground">
+              New accounts start as buyers. Sellers and admins are promoted from the database by the Book Ledger owner.
+            </p>
             <Button
               className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-              onClick={() => { signIn("u1"); toast.success("Account created"); navigate({ to: "/account" }); }}
+              disabled={busy || !suEmail || !suPassword || !suName}
+              onClick={signUp}
             >
               Create account
             </Button>

@@ -2,9 +2,6 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Moon, Sun, LogIn, LogOut, Menu, LifeBuoy, Shield, Store, MessageCircle, Sparkles, Users, ScrollText, Search, Package } from "lucide-react";
 import { useCurrentUser, useStore, useTheme } from "@/lib/mock-store";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -19,7 +16,7 @@ const communityLinks = [
 ];
 
 export function SiteHeader() {
-  const { users, currentUserId, setCurrentUserId, signedIn, signOut } = useStore();
+  const { signedIn, signOut } = useStore();
   const me = useCurrentUser();
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
@@ -114,17 +111,7 @@ export function SiteHeader() {
                 {me.name}
               </Link>
               <Badge variant="outline" className="hidden capitalize lg:inline-flex">{me.role}</Badge>
-              <Select value={currentUserId} onValueChange={setCurrentUserId}>
-                <SelectTrigger className="h-9 w-[130px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button size="icon" variant="ghost" onClick={() => { signOut(); navigate({ to: "/auth" }); }} aria-label="Sign out">
+              <Button size="icon" variant="ghost" onClick={async () => { await signOut(); navigate({ to: "/auth" }); }} aria-label="Sign out">
                 <LogOut className="h-4 w-4" />
               </Button>
             </>
