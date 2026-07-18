@@ -111,17 +111,7 @@ export function SiteHeader() {
                 {me.name}
               </Link>
               <Badge variant="outline" className="hidden capitalize lg:inline-flex">{me.role}</Badge>
-              <Select value={currentUserId} onValueChange={setCurrentUserId}>
-                <SelectTrigger className="h-9 w-[130px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button size="icon" variant="ghost" onClick={() => { signOut(); navigate({ to: "/auth" }); }} aria-label="Sign out">
+              <Button size="icon" variant="ghost" onClick={async () => { await signOut(); navigate({ to: "/auth" }); }} aria-label="Sign out">
                 <LogOut className="h-4 w-4" />
               </Button>
             </>
