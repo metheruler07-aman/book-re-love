@@ -2,9 +2,6 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Moon, Sun, LogIn, LogOut, Menu, LifeBuoy, Shield, Store, MessageCircle, Sparkles, Users, ScrollText, Search, Package } from "lucide-react";
 import { useCurrentUser, useStore, useTheme } from "@/lib/mock-store";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
