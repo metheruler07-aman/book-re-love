@@ -16,7 +16,7 @@ const communityLinks = [
 ];
 
 export function SiteHeader() {
-  const { users, currentUserId, setCurrentUserId, signedIn, signOut } = useStore();
+  const { signedIn, signOut } = useStore();
   const me = useCurrentUser();
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
