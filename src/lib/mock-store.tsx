@@ -625,10 +625,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await refresh();
     },
     respondOffer: async (id, action, counterAmount, note) => {
-      const patch: Record<string, unknown> = { seller_note: note ?? null };
-      if (action === "accept") patch.status = "accepted";
-      else if (action === "decline") patch.status = "declined";
-      else { patch.status = "countered"; patch.counter_amount = counterAmount ?? null; }
+      const patch: {
+        status: OfferStatus; seller_note: string | null; counter_amount?: number | null;
+      } = {
+        status: action === "accept" ? "accepted" : action === "decline" ? "declined" : "countered",
+        seller_note: note ?? null,
+      };
+      if (action === "counter") patch.counter_amount = counterAmount ?? null;
       await supabase.from("offers").update(patch).eq("id", id);
       await refresh();
     },
