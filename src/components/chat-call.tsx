@@ -20,9 +20,9 @@ export function ChatDialog({
   const scrollerRef = useRef<HTMLDivElement>(null);
   useEffect(() => { scrollerRef.current?.scrollTo({ top: 999999 }); }, [thread?.messages.length]);
 
-  const submit = () => {
+  const submit = async () => {
     if (!text.trim()) return;
-    const { redacted } = sendMessage(otherId, text.trim(), bookId);
+    const { redacted } = await sendMessage(otherId, text.trim(), bookId);
     if (redacted) toast.warning("Phone number blocked", { description: "Chats can't share contact details." });
     setText("");
   };
