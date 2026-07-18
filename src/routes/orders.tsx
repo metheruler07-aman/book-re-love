@@ -114,8 +114,8 @@ function OrderCard({ order, viewer }: { order: Order; viewer: "buyer" | "seller"
               <label className="text-xs text-muted-foreground">Enter buyer's 4-digit code</label>
               <Input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))} className="w-32 font-mono text-lg tracking-widest" />
             </div>
-            <Button onClick={() => {
-              const r = confirmHandoff(order.id, code);
+            <Button onClick={async () => {
+              const r = await confirmHandoff(order.id, code);
               if (r.ok) toast.success("Handoff confirmed — marked as delivered");
               else toast.error("Code doesn't match");
             }}>Confirm handoff</Button>
