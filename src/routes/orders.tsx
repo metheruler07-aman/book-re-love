@@ -180,6 +180,8 @@ function StatusPill({ status }: { status: Order["status"] }) {
     awaiting_handoff:  { label: "Awaiting handoff",  cls: "bg-accent/15 text-accent border-accent/30",       icon: Clock },
     awaiting_delivery: { label: "Awaiting delivery", cls: "bg-primary/10 text-primary border-primary/30",    icon: Truck },
     delivered:         { label: "Delivered",         cls: "bg-secondary text-secondary-foreground",          icon: CheckCircle2 },
+    completed:         { label: "Completed",         cls: "bg-secondary text-secondary-foreground",          icon: CheckCircle2 },
+    overdue_review:    { label: "Overdue — review",  cls: "bg-destructive/10 text-destructive border-destructive/30", icon: Clock },
     cancelled:         { label: "Cancelled",         cls: "bg-destructive/10 text-destructive border-destructive/30", icon: Clock },
   };
   const M = map[status];
