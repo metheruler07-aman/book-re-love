@@ -346,7 +346,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const { data: myRoles } = await supabase.from("user_roles").select("*");
     const roleMap = new Map<string, Role>();
     ((myRoles ?? []) as { user_id: string; role: Role }[]).forEach((r0) => roleMap.set(r0.user_id, r0.role));
-    setUsers(((profs.data ?? []) as ProfileRow[]).map((p) => toUser(p, roleMap.get(p.id) ?? "buyer")));
+    setUsers(((profs.data ?? []) as unknown as ProfileRow[]).map((p) => toUser(p, roleMap.get(p.id) ?? "buyer")));
   }, []);
 
   const loadPrivate = useCallback(async (uid: string) => {
