@@ -25,9 +25,8 @@ export function NotificationBell() {
   const openNotification = async (n: Notification) => {
     if (!n.read) await markNotificationRead(n.id);
     const t = target(n);
-    // TanStack navigate is typed against the route tree; loose-cast for dynamic pick.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    navigate({ to: t.path as any, params: t.params });
+    (navigate as any)({ to: t.path, params: t.params });
   };
 
   return (
