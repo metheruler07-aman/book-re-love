@@ -230,6 +230,8 @@ type Store = {
   queries: SupportQuery[];
   offers: Offer[];
   orders: Order[];
+  notifications: Notification[];
+  unreadNotifications: number;
 
   updateUser: (id: string, patch: Partial<User>) => Promise<void>;
   addBook: (b: Omit<Book, "id" | "listedAt" | "status">) => Promise<void>;
@@ -266,6 +268,9 @@ type Store = {
   createOrder: (input: CreateOrderInput) => Promise<Order>;
   confirmHandoff: (orderId: string, code: string) => Promise<{ ok: boolean }>;
   confirmReceived: (orderId: string, photo: string) => Promise<void>;
+
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -305,6 +310,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [queries, setQueries] = useState<SupportQuery[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   /* ---------- Loaders ---------- */
   const loadPublic = useCallback(async () => {
