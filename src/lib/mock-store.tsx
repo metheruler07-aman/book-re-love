@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
  * `useCurrentUser()` unchanged.
  * ========================================================= */
 
-export type Role = "buyer" | "seller" | "admin";
+export type Role = "user" | "admin";
 export type Condition = "New" | "Like New" | "Good" | "Fair";
 export type Category = "sale" | "rental" | "buyback" | "notes";
 export type ListingStatus = "pending" | "approved" | "rejected";
@@ -230,6 +230,8 @@ type Store = {
   queries: SupportQuery[];
   offers: Offer[];
   orders: Order[];
+  notifications: Notification[];
+  unreadNotifications: number;
 
   updateUser: (id: string, patch: Partial<User>) => Promise<void>;
   addBook: (b: Omit<Book, "id" | "listedAt" | "status">) => Promise<void>;
@@ -266,12 +268,27 @@ type Store = {
   createOrder: (input: CreateOrderInput) => Promise<Order>;
   confirmHandoff: (orderId: string, code: string) => Promise<{ ok: boolean }>;
   confirmReceived: (orderId: string, photo: string) => Promise<void>;
+
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
 };
 
 const Ctx = createContext<Store | null>(null);
 const ANON: User = {
-  id: "", name: "Guest", role: "buyer", area: "", radiusKm: 5, shipsBeyondRadius: false,
+  id: "", name: "Guest", role: "user", area: "", radiusKm: 5, shipsBeyondRadius: false,
   paymentMethods: { upi: true, card: false, wallet: false, cod: true },
+};
+
+export type Notification = {
+  id: string;
+  type: string;
+  message: string;
+  read: boolean;
+  relatedOrderId?: string;
+  relatedBookId?: string;
+  relatedNoteId?: string;
+  relatedThreadUserId?: string;
+  createdAt: string;
 };
 
 function threadKey(a: string, b: string) { return [a, b].sort().join("|"); }
@@ -293,6 +310,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [queries, setQueries] = useState<SupportQuery[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   /* ---------- Loaders ---------- */
   const loadPublic = useCallback(async () => {
@@ -342,20 +360,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
     setCommissions({ ...base, perListing, perNote });
 
-    // Roles for all profiles: we can only read our own row per RLS; default others to buyer
+    // Roles: legacy 'buyer'/'seller' collapse to unified 'user'. Only 'admin' is distinct.
     const { data: myRoles } = await supabase.from("user_roles").select("*");
     const roleMap = new Map<string, Role>();
-    ((myRoles ?? []) as { user_id: string; role: Role }[]).forEach((r0) => roleMap.set(r0.user_id, r0.role));
-    setUsers(((profs.data ?? []) as unknown as ProfileRow[]).map((p) => toUser(p, roleMap.get(p.id) ?? "buyer")));
+    ((myRoles ?? []) as { user_id: string; role: string }[]).forEach((r0) =>
+      roleMap.set(r0.user_id, r0.role === "admin" ? "admin" : "user"),
+    );
+    setUsers(((profs.data ?? []) as unknown as ProfileRow[]).map((p) => toUser(p, roleMap.get(p.id) ?? "user")));
   }, []);
 
   const loadPrivate = useCallback(async (uid: string) => {
-    const [o, of0, m, q, qr] = await Promise.all([
+    const [o, of0, m, q, qr, nt] = await Promise.all([
       supabase.from("orders").select("*").or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).order("created_at", { ascending: false }),
       supabase.from("offers").select("*").or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).order("created_at", { ascending: false }),
       supabase.from("messages").select("*").or(`from_id.eq.${uid},to_id.eq.${uid}`).order("created_at", { ascending: true }),
       supabase.from("support_queries").select("*").order("created_at", { ascending: false }),
       supabase.from("support_replies").select("*").order("created_at", { ascending: true }),
+      supabase.from("notifications").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(50),
     ]);
     setOrders(((o.data ?? []) as Array<{
       id: string; buyer_id: string; seller_id: string; book_id: string | null; kind: string;
@@ -414,6 +435,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         id: r0.id, fromId: r0.from_id, text: r0.text, at: r0.created_at,
       })),
     })));
+
+    setNotifications(((nt.data ?? []) as Array<{
+      id: string; type: string; message: string; read: boolean;
+      related_order_id: string | null; related_book_id: string | null;
+      related_note_id: string | null; related_thread_user_id: string | null;
+      created_at: string;
+    }>).map((n0) => ({
+      id: n0.id, type: n0.type, message: n0.message, read: n0.read,
+      relatedOrderId: n0.related_order_id ?? undefined,
+      relatedBookId: n0.related_book_id ?? undefined,
+      relatedNoteId: n0.related_note_id ?? undefined,
+      relatedThreadUserId: n0.related_thread_user_id ?? undefined,
+      createdAt: n0.created_at,
+    })));
   }, []);
 
   /* ---------- Auth wiring ---------- */
@@ -451,6 +486,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => loadPrivate(currentUserId))
       .on("postgres_changes", { event: "*", schema: "public", table: "offers" }, () => loadPrivate(currentUserId))
       .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => loadPrivate(currentUserId))
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${currentUserId}` }, () => loadPrivate(currentUserId))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [currentUserId, loadPrivate]);
@@ -467,6 +503,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     signOut: async () => { await supabase.auth.signOut(); setSignedIn(false); setCurrentUserId(""); },
 
     users, books, notes, requests, recommendations, threads, commissions, queries, offers, orders,
+    notifications,
+    unreadNotifications: notifications.filter((n) => !n.read).length,
+
+    markNotificationRead: async (id) => {
+      if (!currentUserId) return;
+      setNotifications((cur) => cur.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      await supabase.from("notifications").update({ read: true }).eq("id", id);
+    },
+    markAllNotificationsRead: async () => {
+      if (!currentUserId) return;
+      setNotifications((cur) => cur.map((n) => ({ ...n, read: true })));
+      await supabase.from("notifications").update({ read: true }).eq("user_id", currentUserId).eq("read", false);
+    },
 
     updateUser: async (id, patch) => {
       await supabase.from("profiles").update({
@@ -678,7 +727,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
   }), [
     currentUserId, signedIn, loading, users, books, notes, requests, recommendations,
-    threads, commissions, queries, offers, orders, loadPrivate, loadPublic,
+    threads, commissions, queries, offers, orders, notifications, loadPrivate, loadPublic,
   ]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

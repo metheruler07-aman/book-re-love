@@ -16,6 +16,7 @@ import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as NotesRouteImport } from './routes/notes'
+import { Route as MySpaceRouteImport } from './routes/my-space'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as CommunityRouteImport } from './routes/community'
 import { Route as BrowseRouteImport } from './routes/browse'
@@ -58,6 +59,11 @@ const OrdersRoute = OrdersRouteImport.update({
 const NotesRoute = NotesRouteImport.update({
   id: '/notes',
   path: '/notes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MySpaceRoute = MySpaceRouteImport.update({
+  id: '/my-space',
+  path: '/my-space',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MessagesRoute = MessagesRouteImport.update({
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/browse': typeof BrowseRoute
   '/community': typeof CommunityRoute
   '/messages': typeof MessagesRoute
+  '/my-space': typeof MySpaceRoute
   '/notes': typeof NotesRoute
   '/orders': typeof OrdersRoute
   '/privacy': typeof PrivacyRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/browse': typeof BrowseRoute
   '/community': typeof CommunityRoute
   '/messages': typeof MessagesRoute
+  '/my-space': typeof MySpaceRoute
   '/notes': typeof NotesRoute
   '/orders': typeof OrdersRoute
   '/privacy': typeof PrivacyRoute
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/browse': typeof BrowseRoute
   '/community': typeof CommunityRoute
   '/messages': typeof MessagesRoute
+  '/my-space': typeof MySpaceRoute
   '/notes': typeof NotesRoute
   '/orders': typeof OrdersRoute
   '/privacy': typeof PrivacyRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/browse'
     | '/community'
     | '/messages'
+    | '/my-space'
     | '/notes'
     | '/orders'
     | '/privacy'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/browse'
     | '/community'
     | '/messages'
+    | '/my-space'
     | '/notes'
     | '/orders'
     | '/privacy'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/browse'
     | '/community'
     | '/messages'
+    | '/my-space'
     | '/notes'
     | '/orders'
     | '/privacy'
@@ -215,6 +227,7 @@ export interface RootRouteChildren {
   BrowseRoute: typeof BrowseRoute
   CommunityRoute: typeof CommunityRoute
   MessagesRoute: typeof MessagesRoute
+  MySpaceRoute: typeof MySpaceRoute
   NotesRoute: typeof NotesRoute
   OrdersRoute: typeof OrdersRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -274,6 +287,13 @@ declare module '@tanstack/react-router' {
       path: '/notes'
       fullPath: '/notes'
       preLoaderRoute: typeof NotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-space': {
+      id: '/my-space'
+      path: '/my-space'
+      fullPath: '/my-space'
+      preLoaderRoute: typeof MySpaceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/messages': {
@@ -343,6 +363,7 @@ const rootRouteChildren: RootRouteChildren = {
   BrowseRoute: BrowseRoute,
   CommunityRoute: CommunityRoute,
   MessagesRoute: MessagesRoute,
+  MySpaceRoute: MySpaceRoute,
   NotesRoute: NotesRoute,
   OrdersRoute: OrdersRoute,
   PrivacyRoute: PrivacyRoute,
@@ -355,13 +376,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
