@@ -42,14 +42,6 @@ function Sell() {
   const live = myBooks.filter((b) => b.status === "approved");
   const myOffers = offers.filter((o) => o.sellerId === me.id);
 
-  if (me.role === "buyer") {
-    return (
-      <div className="mx-auto max-w-md py-24 text-center">
-        <h1 className="font-display text-3xl">Sellers only</h1>
-        <p className="mt-2 text-muted-foreground">Switch to a seller account from the top-right to list books.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">

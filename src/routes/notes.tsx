@@ -47,7 +47,7 @@ function NotesPage() {
             Printed handouts and online PDFs — sold by students who already survived the semester.
           </p>
         </div>
-        {me.role !== "buyer" && <UploadNoteDialog />}
+        {me.id && <UploadNoteDialog />}
       </header>
 
       {myPending.length > 0 && (

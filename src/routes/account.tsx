@@ -66,19 +66,17 @@ function Account() {
             <p className="text-xs text-muted-foreground">Distance you're willing to hand-deliver or meet within.</p>
           </div>
 
-          {(me.role === "seller" || me.role === "admin") && (
-            <div className="flex items-start justify-between rounded-md border border-border bg-background/40 p-4">
-              <div>
-                <div className="flex items-center gap-2 font-medium">
-                  <Truck className="h-4 w-4" /> Ship beyond radius
-                </div>
-                <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                  When on, buyers outside your radius can order — they pay the courier fee at checkout.
-                </p>
+          <div className="flex items-start justify-between rounded-md border border-border bg-background/40 p-4">
+            <div>
+              <div className="flex items-center gap-2 font-medium">
+                <Truck className="h-4 w-4" /> Ship beyond radius
               </div>
-              <Switch checked={ships} onCheckedChange={setShips} />
+              <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                When on, buyers outside your radius can order — they pay the courier fee at checkout.
+              </p>
             </div>
-          )}
+            <Switch checked={ships} onCheckedChange={setShips} />
+          </div>
         </div>
       </section>
 
