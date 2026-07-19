@@ -727,7 +727,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
   }), [
     currentUserId, signedIn, loading, users, books, notes, requests, recommendations,
-    threads, commissions, queries, offers, orders, loadPrivate, loadPublic,
+    threads, commissions, queries, offers, orders, notifications, loadPrivate, loadPublic,
   ]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
