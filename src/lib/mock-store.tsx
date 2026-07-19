@@ -370,12 +370,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadPrivate = useCallback(async (uid: string) => {
-    const [o, of0, m, q, qr] = await Promise.all([
+    const [o, of0, m, q, qr, nt] = await Promise.all([
       supabase.from("orders").select("*").or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).order("created_at", { ascending: false }),
       supabase.from("offers").select("*").or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).order("created_at", { ascending: false }),
       supabase.from("messages").select("*").or(`from_id.eq.${uid},to_id.eq.${uid}`).order("created_at", { ascending: true }),
       supabase.from("support_queries").select("*").order("created_at", { ascending: false }),
       supabase.from("support_replies").select("*").order("created_at", { ascending: true }),
+      supabase.from("notifications").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(50),
     ]);
     setOrders(((o.data ?? []) as Array<{
       id: string; buyer_id: string; seller_id: string; book_id: string | null; kind: string;
@@ -434,6 +435,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         id: r0.id, fromId: r0.from_id, text: r0.text, at: r0.created_at,
       })),
     })));
+
+    setNotifications(((nt.data ?? []) as Array<{
+      id: string; type: string; message: string; read: boolean;
+      related_order_id: string | null; related_book_id: string | null;
+      related_note_id: string | null; related_thread_user_id: string | null;
+      created_at: string;
+    }>).map((n0) => ({
+      id: n0.id, type: n0.type, message: n0.message, read: n0.read,
+      relatedOrderId: n0.related_order_id ?? undefined,
+      relatedBookId: n0.related_book_id ?? undefined,
+      relatedNoteId: n0.related_note_id ?? undefined,
+      relatedThreadUserId: n0.related_thread_user_id ?? undefined,
+      createdAt: n0.created_at,
+    })));
   }, []);
 
   /* ---------- Auth wiring ---------- */
@@ -471,6 +486,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => loadPrivate(currentUserId))
       .on("postgres_changes", { event: "*", schema: "public", table: "offers" }, () => loadPrivate(currentUserId))
       .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => loadPrivate(currentUserId))
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${currentUserId}` }, () => loadPrivate(currentUserId))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [currentUserId, loadPrivate]);
