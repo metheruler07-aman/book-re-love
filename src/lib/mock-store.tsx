@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
  * `useCurrentUser()` unchanged.
  * ========================================================= */
 
-export type Role = "buyer" | "seller" | "admin";
+export type Role = "user" | "admin";
 export type Condition = "New" | "Like New" | "Good" | "Fair";
 export type Category = "sale" | "rental" | "buyback" | "notes";
 export type ListingStatus = "pending" | "approved" | "rejected";
@@ -270,8 +270,20 @@ type Store = {
 
 const Ctx = createContext<Store | null>(null);
 const ANON: User = {
-  id: "", name: "Guest", role: "buyer", area: "", radiusKm: 5, shipsBeyondRadius: false,
+  id: "", name: "Guest", role: "user", area: "", radiusKm: 5, shipsBeyondRadius: false,
   paymentMethods: { upi: true, card: false, wallet: false, cod: true },
+};
+
+export type Notification = {
+  id: string;
+  type: string;
+  message: string;
+  read: boolean;
+  relatedOrderId?: string;
+  relatedBookId?: string;
+  relatedNoteId?: string;
+  relatedThreadUserId?: string;
+  createdAt: string;
 };
 
 function threadKey(a: string, b: string) { return [a, b].sort().join("|"); }
@@ -342,11 +354,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
     setCommissions({ ...base, perListing, perNote });
 
-    // Roles for all profiles: we can only read our own row per RLS; default others to buyer
+    // Roles: legacy 'buyer'/'seller' collapse to unified 'user'. Only 'admin' is distinct.
     const { data: myRoles } = await supabase.from("user_roles").select("*");
     const roleMap = new Map<string, Role>();
-    ((myRoles ?? []) as { user_id: string; role: Role }[]).forEach((r0) => roleMap.set(r0.user_id, r0.role));
-    setUsers(((profs.data ?? []) as unknown as ProfileRow[]).map((p) => toUser(p, roleMap.get(p.id) ?? "buyer")));
+    ((myRoles ?? []) as { user_id: string; role: string }[]).forEach((r0) =>
+      roleMap.set(r0.user_id, r0.role === "admin" ? "admin" : "user"),
+    );
+    setUsers(((profs.data ?? []) as unknown as ProfileRow[]).map((p) => toUser(p, roleMap.get(p.id) ?? "user")));
   }, []);
 
   const loadPrivate = useCallback(async (uid: string) => {

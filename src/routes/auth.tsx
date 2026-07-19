@@ -2,18 +2,15 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { useTheme } from "@/lib/mock-store";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign in — Book Ledger" },
-      { name: "description", content: "Sign in to Book Ledger to buy, sell, rent, and trade books with readers nearby." },
+      { name: "description", content: "Sign in to Book Ledger with Google to buy, sell, rent, and trade books with readers nearby." },
     ],
   }),
   component: Auth,
@@ -24,33 +21,24 @@ function Auth() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
-  const [siEmail, setSiEmail] = useState("");
-  const [siPassword, setSiPassword] = useState("");
-
-  const [suName, setSuName] = useState("");
-  const [suEmail, setSuEmail] = useState("");
-  const [suPassword, setSuPassword] = useState("");
-
-  const signIn = async () => {
+  const signInGoogle = async () => {
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: siEmail, password: siPassword });
-    setBusy(false);
-    if (error) return toast.error("Sign-in failed", { description: error.message });
-    toast.success("Welcome back");
-    navigate({ to: "/" });
-  };
-
-  const signUp = async () => {
-    setBusy(true);
-    const { error } = await supabase.auth.signUp({
-      email: suEmail,
-      password: suPassword,
-      options: { data: { name: suName }, emailRedirectTo: `${window.location.origin}/` },
-    });
-    setBusy(false);
-    if (error) return toast.error("Sign-up failed", { description: error.message });
-    toast.success("Account created", { description: "You're signed in as a buyer." });
-    navigate({ to: "/account" });
+    try {
+      const res = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (res.error) {
+        toast.error("Sign-in failed", { description: res.error.message });
+        return;
+      }
+      if (res.redirected) return; // browser navigates away
+      toast.success("Welcome");
+      navigate({ to: "/" });
+    } catch (e) {
+      toast.error("Sign-in failed", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -59,10 +47,10 @@ function Auth() {
         <div>
           <img src="/book-ledger-logo.svg" alt="Book Ledger" className="h-12 w-auto" />
           <h1 className="mt-16 font-display text-5xl leading-[1.05]">
-            Welcome back to <span className="italic text-accent">the reading room</span>.
+            Welcome to <span className="italic text-accent">the reading room</span>.
           </h1>
           <p className="mt-4 max-w-md text-muted-foreground">
-            Pick up where you left off — your shelf, your neighborhood, your unread requests.
+            One account, buy and sell freely with readers nearby.
           </p>
         </div>
         <blockquote className="max-w-sm border-l-2 border-accent pl-4 text-sm italic text-muted-foreground">
@@ -72,57 +60,43 @@ function Auth() {
       </div>
 
       <div className="flex flex-col justify-center">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-8 flex items-center justify-between">
           <div>
             <h2 className="font-display text-3xl">Sign in</h2>
-            <p className="text-sm text-muted-foreground">or create an account to continue.</p>
+            <p className="text-sm text-muted-foreground">One account — buy, sell, rent, all of it.</p>
           </div>
           <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
         </div>
 
-        <Tabs defaultValue="signin">
-          <TabsList className="w-full">
-            <TabsTrigger value="signin" className="flex-1">Sign in</TabsTrigger>
-            <TabsTrigger value="signup" className="flex-1">Create account</TabsTrigger>
-          </TabsList>
+        <Button
+          size="lg"
+          variant="outline"
+          disabled={busy}
+          onClick={signInGoogle}
+          className="w-full justify-center gap-3 py-6 text-base"
+        >
+          <GoogleIcon /> Continue with Google
+        </Button>
 
-          <TabsContent value="signin" className="mt-6 space-y-4">
-            <div className="grid gap-1.5">
-              <Label>Email</Label>
-              <Input value={siEmail} onChange={(e) => setSiEmail(e.target.value)} type="email" placeholder="you@example.com" />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Password</Label>
-              <Input value={siPassword} onChange={(e) => setSiPassword(e.target.value)} type="password" />
-            </div>
-            <Button
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={busy || !siEmail || !siPassword}
-              onClick={signIn}
-            >
-              Sign in
-            </Button>
-          </TabsContent>
-
-          <TabsContent value="signup" className="mt-6 space-y-4">
-            <div className="grid gap-1.5"><Label>Full name</Label><Input value={suName} onChange={(e) => setSuName(e.target.value)} placeholder="Your name" /></div>
-            <div className="grid gap-1.5"><Label>Email</Label><Input value={suEmail} onChange={(e) => setSuEmail(e.target.value)} type="email" placeholder="you@example.com" /></div>
-            <div className="grid gap-1.5"><Label>Password</Label><Input value={suPassword} onChange={(e) => setSuPassword(e.target.value)} type="password" placeholder="At least 6 characters" /></div>
-            <p className="text-xs text-muted-foreground">
-              New accounts start as buyers. Sellers and admins are promoted from the database by the Book Ledger owner.
-            </p>
-            <Button
-              className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-              disabled={busy || !suEmail || !suPassword || !suName}
-              onClick={signUp}
-            >
-              Create account
-            </Button>
-          </TabsContent>
-        </Tabs>
+        <p className="mt-8 text-xs text-muted-foreground">
+          By continuing you agree to our{" "}
+          <a href="/terms" className="underline hover:text-foreground">Terms</a> and{" "}
+          <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>.
+        </p>
       </div>
     </div>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 8 3l5.7-5.7C34.3 6.2 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z" />
+      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 15 19 12 24 12c3 0 5.8 1.1 8 3l5.7-5.7C34.3 6.2 29.4 4 24 4 16.3 4 9.7 8.4 6.3 14.7z" />
+      <path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.3l-6.3-5.2C29.2 35 26.7 36 24 36c-5.3 0-9.7-3.4-11.3-8.1l-6.5 5C9.5 39.5 16.2 44 24 44z" />
+      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.5l6.3 5.2C41.5 35 44 30 44 24c0-1.2-.1-2.3-.4-3.5z" />
+    </svg>
   );
 }
