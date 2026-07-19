@@ -503,6 +503,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     signOut: async () => { await supabase.auth.signOut(); setSignedIn(false); setCurrentUserId(""); },
 
     users, books, notes, requests, recommendations, threads, commissions, queries, offers, orders,
+    notifications,
+    unreadNotifications: notifications.filter((n) => !n.read).length,
+
+    markNotificationRead: async (id) => {
+      if (!currentUserId) return;
+      setNotifications((cur) => cur.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      await supabase.from("notifications").update({ read: true }).eq("id", id);
+    },
+    markAllNotificationsRead: async () => {
+      if (!currentUserId) return;
+      setNotifications((cur) => cur.map((n) => ({ ...n, read: true })));
+      await supabase.from("notifications").update({ read: true }).eq("user_id", currentUserId).eq("read", false);
+    },
 
     updateUser: async (id, patch) => {
       await supabase.from("profiles").update({
