@@ -1,14 +1,14 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Moon, Sun, LogIn, LogOut, Menu, LifeBuoy, Shield, Store, MessageCircle, Sparkles, Users, ScrollText, Search, Package } from "lucide-react";
+import { Moon, Sun, LogIn, LogOut, Menu, LifeBuoy, Shield, Store, MessageCircle, Sparkles, Users, ScrollText, Search, Package, User as UserIcon } from "lucide-react";
 import { useCurrentUser, useStore, useTheme } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { NotificationBell } from "@/components/notification-bell";
 
 const shopLinks = [
-  { to: "/browse" as const,          label: "Browse",  icon: Search },
-  { to: "/notes" as const,           label: "Notes",   icon: ScrollText },
+  { to: "/browse" as const,          label: "Shop",   icon: Search },
+  { to: "/notes" as const,           label: "Notes",  icon: ScrollText },
 ];
 const communityLinks = [
   { to: "/recommendations" as const, label: "Recs",      icon: Sparkles },
@@ -39,7 +39,7 @@ export function SiteHeader() {
               <SheetTitle className="font-display">Book Ledger</SheetTitle>
             </SheetHeader>
             <div className="space-y-6 p-4 text-sm">
-              <NavGroup label="Shop">
+              <NavGroup label="Marketplace">
                 {shopLinks.map((l) => <DrawerLink key={l.to} to={l.to} icon={l.icon} label={l.label} onNav={closeDrawer} />)}
               </NavGroup>
               <NavGroup label="Community">
@@ -47,10 +47,11 @@ export function SiteHeader() {
               </NavGroup>
               {signedIn && (
                 <NavGroup label="You">
+                  <DrawerLink to="/my-space" icon={UserIcon} label="My Space" onNav={closeDrawer} />
+                  <DrawerLink to="/sell" icon={Store} label="List a book" onNav={closeDrawer} />
                   <DrawerLink to="/messages" icon={MessageCircle} label="Messages" onNav={closeDrawer} />
                   <DrawerLink to="/orders" icon={Package} label="Orders" onNav={closeDrawer} />
                   <DrawerLink to="/support" icon={LifeBuoy} label="Raise a query" onNav={closeDrawer} />
-                  {me.role !== "buyer" && <DrawerLink to="/sell" icon={Store} label="Sell / rent" onNav={closeDrawer} />}
                   {me.role === "admin" && <DrawerLink to="/admin" icon={Shield} label="Admin console" onNav={closeDrawer} />}
                 </NavGroup>
               )}
@@ -71,32 +72,15 @@ export function SiteHeader() {
         {/* Desktop primary nav */}
         <nav className="ml-6 hidden items-center gap-1 md:flex">
           {[...shopLinks, ...communityLinks].map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              activeProps={{ className: "bg-secondary text-secondary-foreground" }}
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {l.label}
-            </Link>
+            <NavLink key={l.to} to={l.to} label={l.label} />
           ))}
-          {signedIn && (
-            <>
-              <Link to="/messages" activeProps={{ className: "bg-secondary text-secondary-foreground" }} className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Messages</Link>
-              <Link to="/orders" activeProps={{ className: "bg-secondary text-secondary-foreground" }} className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Orders</Link>
-            </>
-          )}
+          {signedIn && <NavLink to="/my-space" label="My Space" />}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
-          {signedIn && me.role !== "buyer" && (
-            <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex">
-              <Link to="/sell"><Store className="mr-2 h-4 w-4" /> Sell a book</Link>
-            </Button>
-          )}
+        <div className="ml-auto flex items-center gap-1.5">
           {signedIn && (
-            <Button asChild size="icon" variant="ghost" className="hidden sm:inline-flex" aria-label="Raise a query">
-              <Link to="/support"><LifeBuoy className="h-4 w-4" /></Link>
+            <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex">
+              <Link to="/sell"><Store className="mr-2 h-4 w-4" /> List a book</Link>
             </Button>
           )}
           {signedIn && me.role === "admin" && (
@@ -104,13 +88,13 @@ export function SiteHeader() {
               <Link to="/admin"><Shield className="mr-2 h-4 w-4" /> Admin</Link>
             </Button>
           )}
+          {signedIn && <NotificationBell />}
 
           {signedIn ? (
             <>
-              <Link to="/account" className="hidden text-sm text-muted-foreground hover:text-foreground lg:inline">
+              <Link to="/my-space" className="hidden text-sm text-muted-foreground hover:text-foreground lg:inline">
                 {me.name}
               </Link>
-              <Badge variant="outline" className="hidden capitalize lg:inline-flex">{me.role}</Badge>
               <Button size="icon" variant="ghost" onClick={async () => { await signOut(); navigate({ to: "/auth" }); }} aria-label="Sign out">
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -126,6 +110,18 @@ export function SiteHeader() {
         </div>
       </div>
     </header>
+  );
+}
+
+function NavLink({ to, label }: { to: string; label: string }) {
+  return (
+    <Link
+      to={to as never}
+      activeProps={{ className: "bg-secondary text-secondary-foreground" }}
+      className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+    >
+      {label}
+    </Link>
   );
 }
 
@@ -164,7 +160,7 @@ export function SiteFooter() {
         <div className="flex gap-8">
           <div>
             <div className="mb-2 font-medium text-foreground">Market</div>
-            <ul className="space-y-1"><li>Browse</li><li>Rent</li><li>Notes</li></ul>
+            <ul className="space-y-1"><li>Shop</li><li>Rent</li><li>Notes</li></ul>
           </div>
           <div>
             <div className="mb-2 font-medium text-foreground">Community</div>

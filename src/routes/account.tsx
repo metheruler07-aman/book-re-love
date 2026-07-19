@@ -80,25 +80,23 @@ function Account() {
         </div>
       </section>
 
-      {(me.role === "seller" || me.role === "admin") && (
-        <section className="mt-6 rounded-lg border border-border bg-card p-6">
-          <div className="flex items-center gap-2 text-primary">
-            <CreditCard className="h-4 w-4" /><h2 className="font-display text-xl">Payment methods you accept</h2>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Buyers see these on your listings. Platform commission is deducted automatically.
-          </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <MethodRow icon={QrCode} label="UPI / QR" desc="Instant online transfer" checked={pm.upi} onChange={(v) => setPm({ ...pm, upi: v })} />
-            <MethodRow icon={CreditCard} label="Card / net-banking" desc="Visa, Mastercard, RuPay" checked={pm.card} onChange={(v) => setPm({ ...pm, card: v })} />
-            <MethodRow icon={Wallet} label="Wallet" desc="Paytm, PhonePe, GPay balance" checked={pm.wallet} onChange={(v) => setPm({ ...pm, wallet: v })} />
-            <MethodRow icon={Banknote} label="Cash on delivery" desc="Buyer pays at handoff" checked={pm.cod} onChange={(v) => setPm({ ...pm, cod: v })} />
-          </div>
-          <p className="mt-4 text-xs text-muted-foreground">
-            Note: even for COD, the platform commission applies to every completed transaction.
-          </p>
-        </section>
-      )}
+      <section className="mt-6 rounded-lg border border-border bg-card p-6">
+        <div className="flex items-center gap-2 text-primary">
+          <CreditCard className="h-4 w-4" /><h2 className="font-display text-xl">Payment methods you accept</h2>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Buyers see these on your listings. Platform commission is deducted automatically.
+        </p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <MethodRow icon={QrCode} label="UPI / QR" desc="Instant online transfer" checked={pm.upi} onChange={(v) => setPm({ ...pm, upi: v })} />
+          <MethodRow icon={CreditCard} label="Card / net-banking" desc="Visa, Mastercard, RuPay" checked={pm.card} onChange={(v) => setPm({ ...pm, card: v })} />
+          <MethodRow icon={Wallet} label="Wallet" desc="Paytm, PhonePe, GPay balance" checked={pm.wallet} onChange={(v) => setPm({ ...pm, wallet: v })} />
+          <MethodRow icon={Banknote} label="Cash on delivery" desc="Buyer pays at handoff" checked={pm.cod} onChange={(v) => setPm({ ...pm, cod: v })} />
+        </div>
+        <p className="mt-4 text-xs text-muted-foreground">
+          Note: even for COD, the platform commission applies to every completed transaction.
+        </p>
+      </section>
 
       <div className="mt-6">
         <Button onClick={save}>Save changes</Button>
