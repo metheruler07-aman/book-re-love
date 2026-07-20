@@ -582,6 +582,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     signOut: async () => { await supabase.auth.signOut(); setSignedIn(false); setCurrentUserId(""); },
 
     users, books, notes, requests, recommendations, threads, commissions, queries, offers, orders,
+    buybackRequests, buybackExtensions,
     notifications,
     unreadNotifications: notifications.filter((n) => !n.read).length,
 
@@ -611,6 +612,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         condition: b.condition, category: b.category, area: b.area,
         original_price: b.originalPrice, description: b.description ?? null,
         self_deliver: b.deliveryOptions.selfDeliver, courier: b.deliveryOptions.courier,
+        buyback_window_days: b.buybackWindowDays,
       });
       await refresh();
     },
