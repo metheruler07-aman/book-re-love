@@ -21,6 +21,15 @@ function Home() {
   const { books, requests } = useStore();
   const featured = books.filter((b) => !b.removed && b.status === "approved").slice(0, 6);
   const topRequests = [...requests].sort((a, b) => b.upvotes.length - a.upvotes.length).slice(0, 3);
+  const liveCount = useLiveBookCount();
+
+  const trustBadges = [
+    { icon: ShieldCheck, title: "Payment held safely", body: "Your money stays protected until you confirm you've received the book." },
+    { icon: BadgeCheck, title: "Verified sellers", body: "Every seller signs in with a verified phone number or Google account." },
+    { icon: KeyRound, title: "Confirmed handoff", body: "A one-time code confirms the book actually changed hands." },
+    { icon: RefreshCw, title: "Fair buyback", body: "Sell it back anytime for half the price, based on condition." },
+  ];
+
 
   return (
     <div>
