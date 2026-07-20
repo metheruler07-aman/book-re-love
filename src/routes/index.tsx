@@ -57,20 +57,14 @@ function Home() {
               </Button>
             </div>
 
-            <dl className="mt-12 grid max-w-lg grid-cols-3 gap-6 text-sm">
-              <div>
-                <dt className="text-muted-foreground">Books re-shelved</dt>
-                <dd className="font-display text-2xl font-semibold">12,480</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Neighborhoods</dt>
-                <dd className="font-display text-2xl font-semibold">86</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Buyback rate</dt>
-                <dd className="font-display text-2xl font-semibold">50%</dd>
-              </div>
-            </dl>
+            <div className="mt-10 inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card/80 px-3 py-1.5 text-xs font-medium text-foreground">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              {liveCount === null ? "Loading listings…" : `${liveCount.toLocaleString()} book${liveCount === 1 ? "" : "s"} listed right now`}
+            </div>
+
           </div>
 
           <div className="relative">
