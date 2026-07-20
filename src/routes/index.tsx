@@ -89,13 +89,33 @@ function Home() {
         </div>
       </section>
 
+      {/* Trust */}
+      <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
+        <h2 className="font-display text-3xl leading-tight sm:text-4xl">
+          Built so no one loses out — <span className="text-accent italic">not the buyer, not the seller.</span>
+        </h2>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          {trustBadges.map((t) => (
+            <div key={t.title} className="flex gap-4 rounded-lg border border-border bg-card p-5">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
+                <t.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="font-display text-lg">{t.title}</div>
+                <p className="mt-1 text-sm text-muted-foreground">{t.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Pillars */}
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
         <div className="grid gap-4 md:grid-cols-4">
           {[
             { icon: BookMarked, title: "Buy & Sell", body: "List with condition and a fair price. Nearby readers find you first." },
             { icon: Repeat, title: "Rent by the week", body: "Textbooks and page-turners without the commitment." },
-            { icon: HandCoins, title: "Honest buyback", body: "We repurchase at 50% of original, adjusted by condition." },
+            { icon: HandCoins, title: "Honest buyback", body: "We buy back any book purchased on Book Ledger — up to 50% of your original price. The exact amount depends on the book's condition." },
             { icon: ScrollText, title: "Notes marketplace", body: "Students sell class notes to the next cohort." },
           ].map((f) => (
             <div key={f.title} className="rounded-lg border border-border bg-card p-6">
@@ -106,6 +126,7 @@ function Home() {
           ))}
         </div>
       </section>
+
 
       {/* Featured shelf */}
       <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6">
