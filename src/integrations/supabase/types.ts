@@ -398,6 +398,7 @@ export type Database = {
           blocked: boolean
           created_at: string
           id: string
+          is_admin: boolean
           name: string
           payment_methods: Json
           radius_km: number
@@ -409,6 +410,7 @@ export type Database = {
           blocked?: boolean
           created_at?: string
           id: string
+          is_admin?: boolean
           name?: string
           payment_methods?: Json
           radius_km?: number
@@ -420,6 +422,7 @@ export type Database = {
           blocked?: boolean
           created_at?: string
           id?: string
+          is_admin?: boolean
           name?: string
           payment_methods?: Json
           radius_km?: number
