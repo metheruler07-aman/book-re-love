@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           area: string
           author: string
+          buyback_window_days: number
           category: string
           commission_override: number | null
           condition: Database["public"]["Enums"]["condition_grade"]
@@ -40,6 +41,7 @@ export type Database = {
         Insert: {
           area?: string
           author: string
+          buyback_window_days?: number
           category?: string
           commission_override?: number | null
           condition: Database["public"]["Enums"]["condition_grade"]
@@ -62,6 +64,7 @@ export type Database = {
         Update: {
           area?: string
           author?: string
+          buyback_window_days?: number
           category?: string
           commission_override?: number | null
           condition?: Database["public"]["Enums"]["condition_grade"]
@@ -82,6 +85,120 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      buyback_extensions: {
+        Row: {
+          book_id: string
+          buyer_id: string
+          created_at: string
+          decided_at: string | null
+          id: string
+          order_id: string
+          seller_id: string
+          status: string
+        }
+        Insert: {
+          book_id: string
+          buyer_id: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          order_id: string
+          seller_id: string
+          status?: string
+        }
+        Update: {
+          book_id?: string
+          buyer_id?: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          order_id?: string
+          seller_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyback_extensions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyback_extensions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buyback_requests: {
+        Row: {
+          base_amount: number
+          book_id: string
+          buyer_id: string
+          claimed_condition: string
+          created_at: string
+          decided_at: string | null
+          estimated_amount: number
+          final_amount: number | null
+          final_condition: string | null
+          id: string
+          order_id: string
+          seller_id: string
+          seller_note: string | null
+          status: string
+        }
+        Insert: {
+          base_amount: number
+          book_id: string
+          buyer_id: string
+          claimed_condition: string
+          created_at?: string
+          decided_at?: string | null
+          estimated_amount: number
+          final_amount?: number | null
+          final_condition?: string | null
+          id?: string
+          order_id: string
+          seller_id: string
+          seller_note?: string | null
+          status?: string
+        }
+        Update: {
+          base_amount?: number
+          book_id?: string
+          buyer_id?: string
+          claimed_condition?: string
+          created_at?: string
+          decided_at?: string | null
+          estimated_amount?: number
+          final_amount?: number | null
+          final_condition?: string | null
+          id?: string
+          order_id?: string
+          seller_id?: string
+          seller_note?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyback_requests_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyback_requests_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders_view"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       commissions: {
         Row: {
@@ -332,6 +449,7 @@ export type Database = {
           handoff_code: string | null
           id: string
           kind: Database["public"]["Enums"]["order_kind"]
+          not_for_resale: boolean
           note_id: string | null
           payment_method: Database["public"]["Enums"]["payment_key"]
           received_photo: string | null
@@ -350,6 +468,7 @@ export type Database = {
           handoff_code?: string | null
           id?: string
           kind: Database["public"]["Enums"]["order_kind"]
+          not_for_resale?: boolean
           note_id?: string | null
           payment_method: Database["public"]["Enums"]["payment_key"]
           received_photo?: string | null
@@ -368,6 +487,7 @@ export type Database = {
           handoff_code?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["order_kind"]
+          not_for_resale?: boolean
           note_id?: string | null
           payment_method?: Database["public"]["Enums"]["payment_key"]
           received_photo?: string | null
