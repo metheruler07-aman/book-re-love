@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, BookMarked, HandCoins, Repeat, ScrollText, Sparkles, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, BookMarked, HandCoins, Repeat, ScrollText, Sparkles, Users, ShieldCheck, BadgeCheck, KeyRound, RefreshCw } from "lucide-react";
 import { useStore } from "@/lib/mock-store";
+import { supabase } from "@/integrations/supabase/client";
 import { BookCard } from "@/components/book-card";
 import { Button } from "@/components/ui/button";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
