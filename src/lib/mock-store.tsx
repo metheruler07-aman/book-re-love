@@ -180,8 +180,16 @@ export type BuybackExtension = {
 
 /* Helpers */
 const CONDITION_FACTOR: Record<Condition, number> = { "New": 1.0, "Like New": 0.9, "Good": 0.75, "Fair": 0.55 };
-export function buybackPrice(originalPrice: number, condition: Condition) {
-  return Math.round(originalPrice * 0.5 * CONDITION_FACTOR[condition] * 100) / 100;
+export function buybackPrice(basePaidAmount: number, condition: Condition) {
+  return Math.round(basePaidAmount * 0.5 * CONDITION_FACTOR[condition] * 100) / 100;
+}
+export function isWithinBuybackWindow(orderCreatedAt: string, windowDays: number): boolean {
+  const created = new Date(orderCreatedAt).getTime();
+  const now = Date.now();
+  return (now - created) <= windowDays * 24 * 60 * 60 * 1000;
+}
+export function daysSince(iso: string): number {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000));
 }
 
 const NUMERIC_PHONE = /(?:\+?\d[\d\s\-().]{6,}\d)/g;
@@ -215,6 +223,7 @@ type BookRow = {
   category: string; area: string; original_price: number; description: string | null;
   status: ListingStatus; rejection_note: string | null; commission_override: number | null;
   self_deliver: boolean; courier: boolean; removed: boolean; listed_at: string;
+  buyback_window_days: number;
 };
 function toBook(b: BookRow): Book {
   return {
@@ -225,6 +234,7 @@ function toBook(b: BookRow): Book {
     description: b.description ?? undefined, status: b.status,
     rejectionNote: b.rejection_note ?? undefined, removed: b.removed || undefined,
     deliveryOptions: { selfDeliver: b.self_deliver, courier: b.courier },
+    buybackWindowDays: b.buyback_window_days ?? 30,
   };
 }
 type NoteRow = {
