@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, BookMarked, HandCoins, Repeat, ScrollText, Sparkles, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, BookMarked, HandCoins, Repeat, ScrollText, Sparkles, Users, ShieldCheck, BadgeCheck, KeyRound, RefreshCw } from "lucide-react";
 import { useStore } from "@/lib/mock-store";
+import { supabase } from "@/integrations/supabase/client";
 import { BookCard } from "@/components/book-card";
 import { Button } from "@/components/ui/button";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,6 +21,15 @@ function Home() {
   const { books, requests } = useStore();
   const featured = books.filter((b) => !b.removed && b.status === "approved").slice(0, 6);
   const topRequests = [...requests].sort((a, b) => b.upvotes.length - a.upvotes.length).slice(0, 3);
+  const liveCount = useLiveBookCount();
+
+  const trustBadges = [
+    { icon: ShieldCheck, title: "Payment held safely", body: "Your money stays protected until you confirm you've received the book." },
+    { icon: BadgeCheck, title: "Verified sellers", body: "Every seller signs in with a verified phone number or Google account." },
+    { icon: KeyRound, title: "Confirmed handoff", body: "A one-time code confirms the book actually changed hands." },
+    { icon: RefreshCw, title: "Fair buyback", body: "Sell it back anytime for half the price, based on condition." },
+  ];
+
 
   return (
     <div>
@@ -45,20 +57,14 @@ function Home() {
               </Button>
             </div>
 
-            <dl className="mt-12 grid max-w-lg grid-cols-3 gap-6 text-sm">
-              <div>
-                <dt className="text-muted-foreground">Books re-shelved</dt>
-                <dd className="font-display text-2xl font-semibold">12,480</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Neighborhoods</dt>
-                <dd className="font-display text-2xl font-semibold">86</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Buyback rate</dt>
-                <dd className="font-display text-2xl font-semibold">50%</dd>
-              </div>
-            </dl>
+            <div className="mt-10 inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card/80 px-3 py-1.5 text-xs font-medium text-foreground">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              {liveCount === null ? "Loading listings…" : `${liveCount.toLocaleString()} book${liveCount === 1 ? "" : "s"} listed right now`}
+            </div>
+
           </div>
 
           <div className="relative">
@@ -83,13 +89,33 @@ function Home() {
         </div>
       </section>
 
+      {/* Trust */}
+      <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
+        <h2 className="font-display text-3xl leading-tight sm:text-4xl">
+          Built so no one loses out — <span className="text-accent italic">not the buyer, not the seller.</span>
+        </h2>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          {trustBadges.map((t) => (
+            <div key={t.title} className="flex gap-4 rounded-lg border border-border bg-card p-5">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
+                <t.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="font-display text-lg">{t.title}</div>
+                <p className="mt-1 text-sm text-muted-foreground">{t.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Pillars */}
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
         <div className="grid gap-4 md:grid-cols-4">
           {[
             { icon: BookMarked, title: "Buy & Sell", body: "List with condition and a fair price. Nearby readers find you first." },
             { icon: Repeat, title: "Rent by the week", body: "Textbooks and page-turners without the commitment." },
-            { icon: HandCoins, title: "Honest buyback", body: "We repurchase at 50% of original, adjusted by condition." },
+            { icon: HandCoins, title: "Honest buyback", body: "We buy back any book purchased on Book Ledger — up to 50% of your original price. The exact amount depends on the book's condition." },
             { icon: ScrollText, title: "Notes marketplace", body: "Students sell class notes to the next cohort." },
           ].map((f) => (
             <div key={f.title} className="rounded-lg border border-border bg-card p-6">
@@ -100,6 +126,7 @@ function Home() {
           ))}
         </div>
       </section>
+
 
       {/* Featured shelf */}
       <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6">
@@ -149,3 +176,31 @@ function Home() {
     </div>
   );
 }
+
+function useLiveBookCount() {
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCount = async () => {
+      const { count: c } = await supabase
+        .from("books")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "approved")
+        .eq("removed", false);
+      if (!cancelled) setCount(c ?? 0);
+    };
+    fetchCount();
+    const channel = supabase
+      .channel("home-books-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "books" }, fetchCount)
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  return count;
+}
+

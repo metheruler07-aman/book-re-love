@@ -165,16 +165,18 @@ export function scrubPhone(text: string): { clean: string; redacted: boolean } {
 type ProfileRow = {
   id: string; name: string; area: string; radius_km: number;
   ships_beyond_radius: boolean; payment_methods: PaymentMethods; blocked: boolean;
+  is_admin?: boolean;
 };
 function toUser(p: ProfileRow, role: Role): User {
   return {
-    id: p.id, name: p.name || "Reader", role,
+    id: p.id, name: p.name || "Reader", role: p.is_admin ? "admin" : role,
     area: p.area || "", radiusKm: p.radius_km ?? 5,
     shipsBeyondRadius: !!p.ships_beyond_radius,
     paymentMethods: p.payment_methods ?? { upi: true, card: false, wallet: false, cod: true },
     blocked: !!p.blocked,
   };
 }
+
 type BookRow = {
   id: string; seller_id: string; title: string; author: string; cover: string;
   photos: string[]; price: number; rent_per_week: number | null; condition: Condition;
