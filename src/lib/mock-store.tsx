@@ -808,9 +808,58 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }).eq("id", orderId);
       await loadPrivate(currentUserId);
     },
+    setOrderNotForResale: async (orderId, value) => {
+      await supabase.from("orders").update({ not_for_resale: value }).eq("id", orderId);
+      await loadPrivate(currentUserId);
+    },
+    requestBuyback: async (orderId, claimedCondition) => {
+      if (!currentUserId) throw new Error("Sign in required");
+      const order = orders.find((o) => o.id === orderId);
+      if (!order) throw new Error("Order not found");
+      const base = Number(order.amount);
+      const estimated = buybackPrice(base, claimedCondition);
+      await supabase.from("buyback_requests").insert({
+        order_id: orderId, buyer_id: currentUserId, seller_id: order.sellerId, book_id: order.bookId,
+        claimed_condition: claimedCondition, base_amount: base, estimated_amount: estimated,
+        status: "pending_inspection",
+      });
+      await loadPrivate(currentUserId);
+    },
+    respondBuyback: async (id, action, opts) => {
+      const patch: {
+        status: BuybackStatus; decided_at: string;
+        final_condition?: Condition; final_amount?: number; seller_note?: string | null;
+      } = {
+        status: action === "approve" ? "approved" : "rejected",
+        decided_at: new Date().toISOString(),
+        seller_note: opts?.note ?? null,
+      };
+      if (opts?.finalCondition) patch.final_condition = opts.finalCondition;
+      if (opts?.finalAmount != null) patch.final_amount = opts.finalAmount;
+      await supabase.from("buyback_requests").update(patch).eq("id", id);
+      await loadPrivate(currentUserId);
+    },
+    requestBuybackExtension: async (orderId) => {
+      if (!currentUserId) throw new Error("Sign in required");
+      const order = orders.find((o) => o.id === orderId);
+      if (!order) throw new Error("Order not found");
+      await supabase.from("buyback_extensions").insert({
+        order_id: orderId, buyer_id: currentUserId, seller_id: order.sellerId,
+        book_id: order.bookId, status: "pending",
+      });
+      await loadPrivate(currentUserId);
+    },
+    respondBuybackExtension: async (id, action) => {
+      await supabase.from("buyback_extensions").update({
+        status: action === "approve" ? "approved" : "declined",
+        decided_at: new Date().toISOString(),
+      }).eq("id", id);
+      await loadPrivate(currentUserId);
+    },
   }), [
     currentUserId, signedIn, loading, users, books, notes, requests, recommendations,
-    threads, commissions, queries, offers, orders, notifications, loadPrivate, loadPublic,
+    threads, commissions, queries, offers, orders, buybackRequests, buybackExtensions,
+    notifications, loadPrivate, loadPublic,
   ]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
