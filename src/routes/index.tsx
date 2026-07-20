@@ -176,3 +176,31 @@ function Home() {
     </div>
   );
 }
+
+function useLiveBookCount() {
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCount = async () => {
+      const { count: c } = await supabase
+        .from("books")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "approved")
+        .eq("removed", false);
+      if (!cancelled) setCount(c ?? 0);
+    };
+    fetchCount();
+    const channel = supabase
+      .channel("home-books-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "books" }, fetchCount)
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  return count;
+}
+
