@@ -274,6 +274,8 @@ type Store = {
   queries: SupportQuery[];
   offers: Offer[];
   orders: Order[];
+  buybackRequests: BuybackRequest[];
+  buybackExtensions: BuybackExtension[];
   notifications: Notification[];
   unreadNotifications: number;
 
@@ -312,6 +314,12 @@ type Store = {
   createOrder: (input: CreateOrderInput) => Promise<Order>;
   confirmHandoff: (orderId: string, code: string) => Promise<{ ok: boolean }>;
   confirmReceived: (orderId: string, photo: string) => Promise<void>;
+  setOrderNotForResale: (orderId: string, value: boolean) => Promise<void>;
+
+  requestBuyback: (orderId: string, claimedCondition: Condition) => Promise<void>;
+  respondBuyback: (id: string, action: "approve" | "reject", opts?: { finalCondition?: Condition; finalAmount?: number; note?: string }) => Promise<void>;
+  requestBuybackExtension: (orderId: string) => Promise<void>;
+  respondBuybackExtension: (id: string, action: "approve" | "decline") => Promise<void>;
 
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
@@ -354,6 +362,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [queries, setQueries] = useState<SupportQuery[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [buybackRequests, setBuybackRequests] = useState<BuybackRequest[]>([]);
+  const [buybackExtensions, setBuybackExtensions] = useState<BuybackExtension[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   /* ---------- Loaders ---------- */
