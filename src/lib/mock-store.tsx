@@ -624,6 +624,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         photos: patch.photos, cover: patch.cover,
         self_deliver: patch.deliveryOptions?.selfDeliver,
         courier: patch.deliveryOptions?.courier,
+        ...(patch.buybackWindowDays != null ? { buyback_window_days: patch.buybackWindowDays } : {}),
       }).eq("id", id);
       await refresh();
     },
