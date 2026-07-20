@@ -55,6 +55,7 @@ export type Book = {
   status: ListingStatus;
   rejectionNote?: string;
   deliveryOptions: DeliveryOptions;
+  buybackWindowDays: number;
 };
 
 export type Note = {
@@ -144,12 +145,51 @@ export type Order = {
   handoffCode?: string;
   receivedPhoto?: string;
   createdAt: string;
+  notForResale: boolean;
+};
+
+export type BuybackStatus = "pending_inspection" | "approved" | "rejected";
+export type BuybackRequest = {
+  id: string;
+  orderId: string;
+  buyerId: string;
+  sellerId: string;
+  bookId: string;
+  claimedCondition: Condition;
+  finalCondition?: Condition;
+  baseAmount: number;
+  estimatedAmount: number;
+  finalAmount?: number;
+  sellerNote?: string;
+  status: BuybackStatus;
+  createdAt: string;
+  decidedAt?: string;
+};
+
+export type ExtensionStatus = "pending" | "approved" | "declined";
+export type BuybackExtension = {
+  id: string;
+  orderId: string;
+  buyerId: string;
+  sellerId: string;
+  bookId: string;
+  status: ExtensionStatus;
+  createdAt: string;
+  decidedAt?: string;
 };
 
 /* Helpers */
 const CONDITION_FACTOR: Record<Condition, number> = { "New": 1.0, "Like New": 0.9, "Good": 0.75, "Fair": 0.55 };
-export function buybackPrice(originalPrice: number, condition: Condition) {
-  return Math.round(originalPrice * 0.5 * CONDITION_FACTOR[condition] * 100) / 100;
+export function buybackPrice(basePaidAmount: number, condition: Condition) {
+  return Math.round(basePaidAmount * 0.5 * CONDITION_FACTOR[condition] * 100) / 100;
+}
+export function isWithinBuybackWindow(orderCreatedAt: string, windowDays: number): boolean {
+  const created = new Date(orderCreatedAt).getTime();
+  const now = Date.now();
+  return (now - created) <= windowDays * 24 * 60 * 60 * 1000;
+}
+export function daysSince(iso: string): number {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000));
 }
 
 const NUMERIC_PHONE = /(?:\+?\d[\d\s\-().]{6,}\d)/g;
@@ -183,6 +223,7 @@ type BookRow = {
   category: string; area: string; original_price: number; description: string | null;
   status: ListingStatus; rejection_note: string | null; commission_override: number | null;
   self_deliver: boolean; courier: boolean; removed: boolean; listed_at: string;
+  buyback_window_days: number;
 };
 function toBook(b: BookRow): Book {
   return {
@@ -193,6 +234,7 @@ function toBook(b: BookRow): Book {
     description: b.description ?? undefined, status: b.status,
     rejectionNote: b.rejection_note ?? undefined, removed: b.removed || undefined,
     deliveryOptions: { selfDeliver: b.self_deliver, courier: b.courier },
+    buybackWindowDays: b.buyback_window_days ?? 30,
   };
 }
 type NoteRow = {
@@ -232,6 +274,8 @@ type Store = {
   queries: SupportQuery[];
   offers: Offer[];
   orders: Order[];
+  buybackRequests: BuybackRequest[];
+  buybackExtensions: BuybackExtension[];
   notifications: Notification[];
   unreadNotifications: number;
 
@@ -270,6 +314,12 @@ type Store = {
   createOrder: (input: CreateOrderInput) => Promise<Order>;
   confirmHandoff: (orderId: string, code: string) => Promise<{ ok: boolean }>;
   confirmReceived: (orderId: string, photo: string) => Promise<void>;
+  setOrderNotForResale: (orderId: string, value: boolean) => Promise<void>;
+
+  requestBuyback: (orderId: string, claimedCondition: Condition) => Promise<void>;
+  respondBuyback: (id: string, action: "approve" | "reject", opts?: { finalCondition?: Condition; finalAmount?: number; note?: string }) => Promise<void>;
+  requestBuybackExtension: (orderId: string) => Promise<void>;
+  respondBuybackExtension: (id: string, action: "approve" | "decline") => Promise<void>;
 
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
@@ -312,6 +362,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [queries, setQueries] = useState<SupportQuery[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [buybackRequests, setBuybackRequests] = useState<BuybackRequest[]>([]);
+  const [buybackExtensions, setBuybackExtensions] = useState<BuybackExtension[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   /* ---------- Loaders ---------- */
@@ -372,19 +424,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadPrivate = useCallback(async (uid: string) => {
-    const [o, of0, m, q, qr, nt] = await Promise.all([
+    const [o, of0, m, q, qr, nt, bbr, bbe] = await Promise.all([
       supabase.from("orders").select("*").or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).order("created_at", { ascending: false }),
       supabase.from("offers").select("*").or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).order("created_at", { ascending: false }),
       supabase.from("messages").select("*").or(`from_id.eq.${uid},to_id.eq.${uid}`).order("created_at", { ascending: true }),
       supabase.from("support_queries").select("*").order("created_at", { ascending: false }),
       supabase.from("support_replies").select("*").order("created_at", { ascending: true }),
       supabase.from("notifications").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(50),
+      supabase.from("buyback_requests").select("*").order("created_at", { ascending: false }),
+      supabase.from("buyback_extensions").select("*").order("created_at", { ascending: false }),
     ]);
     setOrders(((o.data ?? []) as Array<{
       id: string; buyer_id: string; seller_id: string; book_id: string | null; kind: string;
       rental_weeks: number | null; amount: number; payment_method: PaymentKey;
       delivery_mode: DeliveryMode; handoff_code: string | null; received_photo: string | null;
-      status: OrderStatus; created_at: string;
+      status: OrderStatus; created_at: string; not_for_resale: boolean;
     }>).map((o0) => ({
       id: o0.id, bookId: o0.book_id ?? "", buyerId: o0.buyer_id, sellerId: o0.seller_id,
       kind: (o0.kind === "rent" ? "rent" : "buy"),
@@ -393,6 +447,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handoffCode: o0.buyer_id === uid ? (o0.handoff_code ?? undefined) : undefined,
       receivedPhoto: o0.received_photo ?? undefined,
       status: o0.status, createdAt: o0.created_at,
+      notForResale: !!o0.not_for_resale,
     })));
 
     setOffers(((of0.data ?? []) as Array<{
@@ -451,6 +506,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       relatedThreadUserId: n0.related_thread_user_id ?? undefined,
       createdAt: n0.created_at,
     })));
+
+    setBuybackRequests(((bbr.data ?? []) as Array<{
+      id: string; order_id: string; buyer_id: string; seller_id: string; book_id: string;
+      claimed_condition: Condition; final_condition: Condition | null;
+      base_amount: number; estimated_amount: number; final_amount: number | null;
+      seller_note: string | null; status: BuybackStatus; created_at: string; decided_at: string | null;
+    }>).map((r0) => ({
+      id: r0.id, orderId: r0.order_id, buyerId: r0.buyer_id, sellerId: r0.seller_id, bookId: r0.book_id,
+      claimedCondition: r0.claimed_condition, finalCondition: r0.final_condition ?? undefined,
+      baseAmount: Number(r0.base_amount), estimatedAmount: Number(r0.estimated_amount),
+      finalAmount: r0.final_amount != null ? Number(r0.final_amount) : undefined,
+      sellerNote: r0.seller_note ?? undefined, status: r0.status,
+      createdAt: r0.created_at, decidedAt: r0.decided_at ?? undefined,
+    })));
+
+    setBuybackExtensions(((bbe.data ?? []) as Array<{
+      id: string; order_id: string; buyer_id: string; seller_id: string; book_id: string;
+      status: ExtensionStatus; created_at: string; decided_at: string | null;
+    }>).map((r0) => ({
+      id: r0.id, orderId: r0.order_id, buyerId: r0.buyer_id, sellerId: r0.seller_id, bookId: r0.book_id,
+      status: r0.status, createdAt: r0.created_at, decidedAt: r0.decided_at ?? undefined,
+    })));
   }, []);
 
   /* ---------- Auth wiring ---------- */
@@ -505,6 +582,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     signOut: async () => { await supabase.auth.signOut(); setSignedIn(false); setCurrentUserId(""); },
 
     users, books, notes, requests, recommendations, threads, commissions, queries, offers, orders,
+    buybackRequests, buybackExtensions,
     notifications,
     unreadNotifications: notifications.filter((n) => !n.read).length,
 
@@ -534,6 +612,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         condition: b.condition, category: b.category, area: b.area,
         original_price: b.originalPrice, description: b.description ?? null,
         self_deliver: b.deliveryOptions.selfDeliver, courier: b.deliveryOptions.courier,
+        buyback_window_days: b.buybackWindowDays,
       });
       await refresh();
     },
@@ -545,6 +624,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         photos: patch.photos, cover: patch.cover,
         self_deliver: patch.deliveryOptions?.selfDeliver,
         courier: patch.deliveryOptions?.courier,
+        ...(patch.buybackWindowDays != null ? { buyback_window_days: patch.buybackWindowDays } : {}),
       }).eq("id", id);
       await refresh();
     },
@@ -708,6 +788,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         kind: input.kind, rentalWeeks: row.rental_weeks ?? undefined, amount: Number(row.amount),
         paymentMethod: row.payment_method, deliveryMode: row.delivery_mode,
         handoffCode: row.handoff_code ?? undefined, status: row.status, createdAt: row.created_at,
+        notForResale: false,
       };
       await loadPrivate(currentUserId);
       return order;
@@ -727,9 +808,58 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }).eq("id", orderId);
       await loadPrivate(currentUserId);
     },
+    setOrderNotForResale: async (orderId, value) => {
+      await supabase.from("orders").update({ not_for_resale: value }).eq("id", orderId);
+      await loadPrivate(currentUserId);
+    },
+    requestBuyback: async (orderId, claimedCondition) => {
+      if (!currentUserId) throw new Error("Sign in required");
+      const order = orders.find((o) => o.id === orderId);
+      if (!order) throw new Error("Order not found");
+      const base = Number(order.amount);
+      const estimated = buybackPrice(base, claimedCondition);
+      await supabase.from("buyback_requests").insert({
+        order_id: orderId, buyer_id: currentUserId, seller_id: order.sellerId, book_id: order.bookId,
+        claimed_condition: claimedCondition, base_amount: base, estimated_amount: estimated,
+        status: "pending_inspection",
+      });
+      await loadPrivate(currentUserId);
+    },
+    respondBuyback: async (id, action, opts) => {
+      const patch: {
+        status: BuybackStatus; decided_at: string;
+        final_condition?: Condition; final_amount?: number; seller_note?: string | null;
+      } = {
+        status: action === "approve" ? "approved" : "rejected",
+        decided_at: new Date().toISOString(),
+        seller_note: opts?.note ?? null,
+      };
+      if (opts?.finalCondition) patch.final_condition = opts.finalCondition;
+      if (opts?.finalAmount != null) patch.final_amount = opts.finalAmount;
+      await supabase.from("buyback_requests").update(patch).eq("id", id);
+      await loadPrivate(currentUserId);
+    },
+    requestBuybackExtension: async (orderId) => {
+      if (!currentUserId) throw new Error("Sign in required");
+      const order = orders.find((o) => o.id === orderId);
+      if (!order) throw new Error("Order not found");
+      await supabase.from("buyback_extensions").insert({
+        order_id: orderId, buyer_id: currentUserId, seller_id: order.sellerId,
+        book_id: order.bookId, status: "pending",
+      });
+      await loadPrivate(currentUserId);
+    },
+    respondBuybackExtension: async (id, action) => {
+      await supabase.from("buyback_extensions").update({
+        status: action === "approve" ? "approved" : "declined",
+        decided_at: new Date().toISOString(),
+      }).eq("id", id);
+      await loadPrivate(currentUserId);
+    },
   }), [
     currentUserId, signedIn, loading, users, books, notes, requests, recommendations,
-    threads, commissions, queries, offers, orders, notifications, loadPrivate, loadPublic,
+    threads, commissions, queries, offers, orders, buybackRequests, buybackExtensions,
+    notifications, loadPrivate, loadPublic,
   ]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

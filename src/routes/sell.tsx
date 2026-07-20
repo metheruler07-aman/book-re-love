@@ -270,13 +270,13 @@ function NewListingDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: "", author: "", cover: "📖", price: "", originalPrice: "", rentPerWeek: "",
-    condition: "Good" as Condition, category: "Fiction", description: "",
+    condition: "Good" as Condition, category: "Fiction", description: "", buybackWindowDays: "30",
   });
   const [photos, setPhotos] = useState<string[]>([]);
   const [delivery, setDelivery] = useState<DeliveryOptions>({ selfDeliver: true, courier: false });
 
   const reset = () => {
-    setForm({ title: "", author: "", cover: "📖", price: "", originalPrice: "", rentPerWeek: "", condition: "Good", category: "Fiction", description: "" });
+    setForm({ title: "", author: "", cover: "📖", price: "", originalPrice: "", rentPerWeek: "", condition: "Good", category: "Fiction", description: "", buybackWindowDays: "30" });
     setPhotos([]);
     setDelivery({ selfDeliver: true, courier: false });
   };
@@ -320,6 +320,15 @@ function NewListingDialog() {
             </Field>
           </div>
           <Field label="Delivery options"><DeliveryPicker value={delivery} onChange={setDelivery} /></Field>
+          <Field label="Buyback eligibility window (days)">
+            <Input
+              type="number" min={0} value={form.buybackWindowDays}
+              onChange={(e) => setForm({ ...form, buybackWindowDays: e.target.value })}
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              How many days after purchase a buyer can request buyback. They can still ask you to extend past this window.
+            </p>
+          </Field>
           <Field label="Description (optional)">
             <Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </Field>
@@ -344,6 +353,7 @@ function NewListingDialog() {
                 sellerId: me.id, area: me.area,
                 description: form.description || undefined,
                 deliveryOptions: delivery,
+                buybackWindowDays: Number(form.buybackWindowDays) || 30,
               });
               toast.success("Submitted for admin approval");
               setOpen(false);
