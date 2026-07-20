@@ -426,7 +426,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       id: string; buyer_id: string; seller_id: string; book_id: string | null; kind: string;
       rental_weeks: number | null; amount: number; payment_method: PaymentKey;
       delivery_mode: DeliveryMode; handoff_code: string | null; received_photo: string | null;
-      status: OrderStatus; created_at: string;
+      status: OrderStatus; created_at: string; not_for_resale: boolean;
     }>).map((o0) => ({
       id: o0.id, bookId: o0.book_id ?? "", buyerId: o0.buyer_id, sellerId: o0.seller_id,
       kind: (o0.kind === "rent" ? "rent" : "buy"),
@@ -435,6 +435,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       handoffCode: o0.buyer_id === uid ? (o0.handoff_code ?? undefined) : undefined,
       receivedPhoto: o0.received_photo ?? undefined,
       status: o0.status, createdAt: o0.created_at,
+      notForResale: !!o0.not_for_resale,
     })));
 
     setOffers(((of0.data ?? []) as Array<{
@@ -750,6 +751,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         kind: input.kind, rentalWeeks: row.rental_weeks ?? undefined, amount: Number(row.amount),
         paymentMethod: row.payment_method, deliveryMode: row.delivery_mode,
         handoffCode: row.handoff_code ?? undefined, status: row.status, createdAt: row.created_at,
+        notForResale: false,
       };
       await loadPrivate(currentUserId);
       return order;
