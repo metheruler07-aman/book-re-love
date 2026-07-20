@@ -55,6 +55,7 @@ export type Book = {
   status: ListingStatus;
   rejectionNote?: string;
   deliveryOptions: DeliveryOptions;
+  buybackWindowDays: number;
 };
 
 export type Note = {
@@ -144,6 +145,37 @@ export type Order = {
   handoffCode?: string;
   receivedPhoto?: string;
   createdAt: string;
+  notForResale: boolean;
+};
+
+export type BuybackStatus = "pending_inspection" | "approved" | "rejected";
+export type BuybackRequest = {
+  id: string;
+  orderId: string;
+  buyerId: string;
+  sellerId: string;
+  bookId: string;
+  claimedCondition: Condition;
+  finalCondition?: Condition;
+  baseAmount: number;
+  estimatedAmount: number;
+  finalAmount?: number;
+  sellerNote?: string;
+  status: BuybackStatus;
+  createdAt: string;
+  decidedAt?: string;
+};
+
+export type ExtensionStatus = "pending" | "approved" | "declined";
+export type BuybackExtension = {
+  id: string;
+  orderId: string;
+  buyerId: string;
+  sellerId: string;
+  bookId: string;
+  status: ExtensionStatus;
+  createdAt: string;
+  decidedAt?: string;
 };
 
 /* Helpers */
