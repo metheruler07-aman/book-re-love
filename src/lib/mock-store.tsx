@@ -424,13 +424,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadPrivate = useCallback(async (uid: string) => {
-    const [o, of0, m, q, qr, nt] = await Promise.all([
+    const [o, of0, m, q, qr, nt, bbr, bbe] = await Promise.all([
       supabase.from("orders").select("*").or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).order("created_at", { ascending: false }),
       supabase.from("offers").select("*").or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).order("created_at", { ascending: false }),
       supabase.from("messages").select("*").or(`from_id.eq.${uid},to_id.eq.${uid}`).order("created_at", { ascending: true }),
       supabase.from("support_queries").select("*").order("created_at", { ascending: false }),
       supabase.from("support_replies").select("*").order("created_at", { ascending: true }),
       supabase.from("notifications").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(50),
+      supabase.from("buyback_requests").select("*").order("created_at", { ascending: false }),
+      supabase.from("buyback_extensions").select("*").order("created_at", { ascending: false }),
     ]);
     setOrders(((o.data ?? []) as Array<{
       id: string; buyer_id: string; seller_id: string; book_id: string | null; kind: string;
@@ -503,6 +505,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       relatedNoteId: n0.related_note_id ?? undefined,
       relatedThreadUserId: n0.related_thread_user_id ?? undefined,
       createdAt: n0.created_at,
+    })));
+
+    setBuybackRequests(((bbr.data ?? []) as Array<{
+      id: string; order_id: string; buyer_id: string; seller_id: string; book_id: string;
+      claimed_condition: Condition; final_condition: Condition | null;
+      base_amount: number; estimated_amount: number; final_amount: number | null;
+      seller_note: string | null; status: BuybackStatus; created_at: string; decided_at: string | null;
+    }>).map((r0) => ({
+      id: r0.id, orderId: r0.order_id, buyerId: r0.buyer_id, sellerId: r0.seller_id, bookId: r0.book_id,
+      claimedCondition: r0.claimed_condition, finalCondition: r0.final_condition ?? undefined,
+      baseAmount: Number(r0.base_amount), estimatedAmount: Number(r0.estimated_amount),
+      finalAmount: r0.final_amount != null ? Number(r0.final_amount) : undefined,
+      sellerNote: r0.seller_note ?? undefined, status: r0.status,
+      createdAt: r0.created_at, decidedAt: r0.decided_at ?? undefined,
+    })));
+
+    setBuybackExtensions(((bbe.data ?? []) as Array<{
+      id: string; order_id: string; buyer_id: string; seller_id: string; book_id: string;
+      status: ExtensionStatus; created_at: string; decided_at: string | null;
+    }>).map((r0) => ({
+      id: r0.id, orderId: r0.order_id, buyerId: r0.buyer_id, sellerId: r0.seller_id, bookId: r0.book_id,
+      status: r0.status, createdAt: r0.created_at, decidedAt: r0.decided_at ?? undefined,
     })));
   }, []);
 
