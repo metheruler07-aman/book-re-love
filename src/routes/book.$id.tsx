@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, MapPin, ShoppingBag, Repeat, HandCoins, Truck, MessageCircle, Phone, CreditCard, QrCode, Wallet, Banknote, Clock, XCircle, Percent, Handshake } from "lucide-react";
+import { ArrowLeft, MapPin, ShoppingBag, Repeat, HandCoins, Truck, MessageCircle, CreditCard, QrCode, Wallet, Banknote, Clock, XCircle, Percent, Handshake } from "lucide-react";
 import { toast } from "sonner";
 import { buybackPrice, useCurrentUser, useStore, type DeliveryMode, type PaymentKey } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ChatDialog, CallDialog } from "@/components/chat-call";
+import { ChatDialog } from "@/components/chat-call";
 
 export const Route = createFileRoute("/book/$id")({
   head: ({ params }) => ({
     meta: [
-      { title: `Book — Book Ledger` },
+      { title: `Book â€” Book Ledger` },
       { name: "description", content: `Listing details for book ${params.id} on Book Ledger.` },
     ],
   }),
@@ -54,7 +54,6 @@ function BookDetail() {
   const isVisible = book.status === "approved" || isOwner || isAdmin;
 
   const [chatOpen, setChatOpen] = useState(false);
-  const [callOpen, setCallOpen] = useState(false);
   const [heroIdx, setHeroIdx] = useState(0);
   const [checkoutKind, setCheckoutKind] = useState<"buy" | "rent" | null>(null);
   const [bargainOpen, setBargainOpen] = useState(false);
@@ -130,17 +129,17 @@ function BookDetail() {
           <p className="mt-1 text-lg text-muted-foreground">by {book.author}</p>
 
           <div className="mt-6 flex items-baseline gap-4">
-            <span className="font-display text-4xl font-semibold">₹{book.price}</span>
-            <span className="text-sm text-muted-foreground line-through">₹{book.originalPrice}</span>
+            <span className="font-display text-4xl font-semibold">â‚¹{book.price}</span>
+            <span className="text-sm text-muted-foreground line-through">â‚¹{book.originalPrice}</span>
             {book.rentPerWeek && (
               <span className="rounded-md bg-primary/10 px-2 py-0.5 text-sm text-primary">
-                Rent ₹{book.rentPerWeek}/wk
+                Rent â‚¹{book.rentPerWeek}/wk
               </span>
             )}
           </div>
 
           <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-            <Percent className="h-3 w-3" /> Platform fee: {commissionPct}% (₹{platformCut}) on sale
+            <Percent className="h-3 w-3" /> Platform fee: {commissionPct}% (â‚¹{platformCut}) on sale
           </div>
 
           {book.description && (
@@ -183,13 +182,10 @@ function BookDetail() {
               <Button size="lg" variant="outline" onClick={requireAuth(() => setChatOpen(true))}>
                 <MessageCircle className="mr-2 h-4 w-4" /> Chat
               </Button>
-              <Button size="lg" variant="outline" onClick={requireAuth(() => setCallOpen(true))}>
-                <Phone className="mr-2 h-4 w-4" /> Call
-              </Button>
             </div>
           ) : (
             <div className="mt-8 rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
-              Buy, rent, chat, and call unlock after admin approves this listing.
+              Buy, rent, and chat unlock after admin approves this listing.
             </div>
           )}
 
@@ -202,7 +198,7 @@ function BookDetail() {
               </div>
               <div className="mt-2 text-sm">{seller.name}</div>
               <div className="text-xs text-muted-foreground">
-                {seller.area} · self-delivery {seller.radiusKm} km
+                {seller.area} Â· self-delivery {seller.radiusKm} km
               </div>
             </div>
 
@@ -210,9 +206,9 @@ function BookDetail() {
               <div className="flex items-center gap-2 text-sm font-medium">
                 <HandCoins className="h-4 w-4 text-accent" /> Buyback estimate
               </div>
-              <div className="mt-2 font-display text-2xl">₹{buyback}</div>
+              <div className="mt-2 font-display text-2xl">â‚¹{buyback}</div>
               <div className="text-xs text-muted-foreground">
-                50% of ₹{book.originalPrice}, adjusted for {book.condition.toLowerCase()} condition.
+                50% of â‚¹{book.originalPrice}, adjusted for {book.condition.toLowerCase()} condition.
               </div>
             </div>
           </div>
@@ -220,7 +216,6 @@ function BookDetail() {
       </div>
 
       <ChatDialog open={chatOpen} onOpenChange={setChatOpen} otherId={seller.id} bookId={book.id} />
-      <CallDialog open={callOpen} onOpenChange={setCallOpen} otherId={seller.id} />
 
       <BargainDialog
         open={bargainOpen}
@@ -228,7 +223,7 @@ function BookDetail() {
         listedPrice={book.price}
         onSubmit={(amt, msg) => {
           createOffer(book.id, amt, msg);
-          toast.success("Offer sent", { description: `₹${amt} — waiting for seller` });
+          toast.success("Offer sent", { description: `â‚¹${amt} â€” waiting for seller` });
         }}
       />
 
@@ -245,7 +240,7 @@ function BookDetail() {
             });
             setCheckoutKind(null);
             if (deliveryMode === "courier") {
-              await sendMessage(seller.id, `Hi ${seller.name} — order ${order.id.slice(-4)} placed. Let's arrange courier: my address and any preferred courier? (Buyer pays courier.)`, book.id);
+              await sendMessage(seller.id, `Hi ${seller.name} â€” order ${order.id.slice(-4)} placed. Let's arrange courier: my address and any preferred courier? (Buyer pays courier.)`, book.id);
               toast.success("Order placed", { description: "Chat opened to arrange courier." });
               navigate({ to: "/orders" });
             } else {
@@ -270,8 +265,8 @@ function BargainDialog({ open, onOpenChange, listedPrice, onSubmit }: {
       <DialogContent className="max-w-sm">
         <DialogHeader><DialogTitle className="font-display">Make an offer</DialogTitle></DialogHeader>
         <div className="grid gap-3 py-2">
-          <div className="text-xs text-muted-foreground">Listed at ₹{listedPrice}. Seller may accept, decline, or counter.</div>
-          <div className="grid gap-1.5"><Label className="text-xs">Your offer (₹)</Label><Input type="number" value={amt} onChange={(e) => setAmt(e.target.value)} /></div>
+          <div className="text-xs text-muted-foreground">Listed at â‚¹{listedPrice}. Seller may accept, decline, or counter.</div>
+          <div className="grid gap-1.5"><Label className="text-xs">Your offer (â‚¹)</Label><Input type="number" value={amt} onChange={(e) => setAmt(e.target.value)} /></div>
           <div className="grid gap-1.5"><Label className="text-xs">Note to seller (optional)</Label><Textarea rows={3} value={msg} onChange={(e) => setMsg(e.target.value)} /></div>
         </div>
         <DialogFooter>
@@ -336,7 +331,7 @@ function CheckoutDialog({
                 ))}
                 <Input type="number" min={1} value={weeks} onChange={(e) => setWeeks(Math.max(1, Number(e.target.value) || 1))} className="w-24" />
               </div>
-              <div className="text-xs text-muted-foreground">₹{book.rentPerWeek}/wk × {weeks} wk</div>
+              <div className="text-xs text-muted-foreground">â‚¹{book.rentPerWeek}/wk Ã— {weeks} wk</div>
             </div>
           )}
 
@@ -388,7 +383,7 @@ function CheckoutDialog({
           </div>
 
           <div className="rounded-md bg-secondary/60 p-3 text-sm">
-            Total: <span className="font-display text-xl">₹{amount}</span>
+            Total: <span className="font-display text-xl">â‚¹{amount}</span>
           </div>
         </div>
 
@@ -406,4 +401,4 @@ function CheckoutDialog({
       </DialogContent>
     </Dialog>
   );
-}
+              }
