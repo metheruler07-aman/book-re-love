@@ -16,7 +16,7 @@ import { ChatDialog } from "@/components/chat-call";
 export const Route = createFileRoute("/book/$id")({
   head: ({ params }) => ({
     meta: [
-      { title: `Book â€” Book Ledger` },
+      { title: `Book — Book Ledger` },
       { name: "description", content: `Listing details for book ${params.id} on Book Ledger.` },
     ],
   }),
@@ -129,17 +129,17 @@ function BookDetail() {
           <p className="mt-1 text-lg text-muted-foreground">by {book.author}</p>
 
           <div className="mt-6 flex items-baseline gap-4">
-            <span className="font-display text-4xl font-semibold">â‚¹{book.price}</span>
-            <span className="text-sm text-muted-foreground line-through">â‚¹{book.originalPrice}</span>
+            <span className="font-display text-4xl font-semibold">₹{book.price}</span>
+            <span className="text-sm text-muted-foreground line-through">₹{book.originalPrice}</span>
             {book.rentPerWeek && (
               <span className="rounded-md bg-primary/10 px-2 py-0.5 text-sm text-primary">
-                Rent â‚¹{book.rentPerWeek}/wk
+                Rent ₹{book.rentPerWeek}/wk
               </span>
             )}
           </div>
 
           <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-            <Percent className="h-3 w-3" /> Platform fee: {commissionPct}% (â‚¹{platformCut}) on sale
+            <Percent className="h-3 w-3" /> Platform fee: {commissionPct}% (₹{platformCut}) on sale
           </div>
 
           {book.description && (
@@ -198,7 +198,7 @@ function BookDetail() {
               </div>
               <div className="mt-2 text-sm">{seller.name}</div>
               <div className="text-xs text-muted-foreground">
-                {seller.area} Â· self-delivery {seller.radiusKm} km
+                {seller.area} · self-delivery {seller.radiusKm} km
               </div>
             </div>
 
@@ -206,9 +206,9 @@ function BookDetail() {
               <div className="flex items-center gap-2 text-sm font-medium">
                 <HandCoins className="h-4 w-4 text-accent" /> Buyback estimate
               </div>
-              <div className="mt-2 font-display text-2xl">â‚¹{buyback}</div>
+              <div className="mt-2 font-display text-2xl">₹{buyback}</div>
               <div className="text-xs text-muted-foreground">
-                50% of â‚¹{book.originalPrice}, adjusted for {book.condition.toLowerCase()} condition.
+                50% of ₹{book.originalPrice}, adjusted for {book.condition.toLowerCase()} condition.
               </div>
             </div>
           </div>
@@ -223,7 +223,7 @@ function BookDetail() {
         listedPrice={book.price}
         onSubmit={(amt, msg) => {
           createOffer(book.id, amt, msg);
-          toast.success("Offer sent", { description: `â‚¹${amt} â€” waiting for seller` });
+          toast.success("Offer sent", { description: `₹${amt} — waiting for seller` });
         }}
       />
 
@@ -240,7 +240,7 @@ function BookDetail() {
             });
             setCheckoutKind(null);
             if (deliveryMode === "courier") {
-              await sendMessage(seller.id, `Hi ${seller.name} â€” order ${order.id.slice(-4)} placed. Let's arrange courier: my address and any preferred courier? (Buyer pays courier.)`, book.id);
+              await sendMessage(seller.id, `Hi ${seller.name} — order ${order.id.slice(-4)} placed. Let's arrange courier: my address and any preferred courier? (Buyer pays courier.)`, book.id);
               toast.success("Order placed", { description: "Chat opened to arrange courier." });
               navigate({ to: "/orders" });
             } else {
@@ -265,8 +265,8 @@ function BargainDialog({ open, onOpenChange, listedPrice, onSubmit }: {
       <DialogContent className="max-w-sm">
         <DialogHeader><DialogTitle className="font-display">Make an offer</DialogTitle></DialogHeader>
         <div className="grid gap-3 py-2">
-          <div className="text-xs text-muted-foreground">Listed at â‚¹{listedPrice}. Seller may accept, decline, or counter.</div>
-          <div className="grid gap-1.5"><Label className="text-xs">Your offer (â‚¹)</Label><Input type="number" value={amt} onChange={(e) => setAmt(e.target.value)} /></div>
+          <div className="text-xs text-muted-foreground">Listed at ₹{listedPrice}. Seller may accept, decline, or counter.</div>
+          <div className="grid gap-1.5"><Label className="text-xs">Your offer (₹)</Label><Input type="number" value={amt} onChange={(e) => setAmt(e.target.value)} /></div>
           <div className="grid gap-1.5"><Label className="text-xs">Note to seller (optional)</Label><Textarea rows={3} value={msg} onChange={(e) => setMsg(e.target.value)} /></div>
         </div>
         <DialogFooter>
@@ -331,7 +331,7 @@ function CheckoutDialog({
                 ))}
                 <Input type="number" min={1} value={weeks} onChange={(e) => setWeeks(Math.max(1, Number(e.target.value) || 1))} className="w-24" />
               </div>
-              <div className="text-xs text-muted-foreground">â‚¹{book.rentPerWeek}/wk Ã— {weeks} wk</div>
+              <div className="text-xs text-muted-foreground">₹{book.rentPerWeek}/wk × {weeks} wk</div>
             </div>
           )}
 
@@ -383,7 +383,7 @@ function CheckoutDialog({
           </div>
 
           <div className="rounded-md bg-secondary/60 p-3 text-sm">
-            Total: <span className="font-display text-xl">â‚¹{amount}</span>
+            Total: <span className="font-display text-xl">₹{amount}</span>
           </div>
         </div>
 
@@ -401,4 +401,4 @@ function CheckoutDialog({
       </DialogContent>
     </Dialog>
   );
-              }
+      }
