@@ -163,27 +163,66 @@ function BookDetail() {
 
           <div className="mt-4">
             <div className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">Delivery</div>
+            <div className="mb-2 flex items-center gap-1.5 text-sm">
+              <MapPin className="h-4 w-4 text-primary" />
+              <span className="font-medium">{seller.area || "Area not set"}</span>
+              <span className="text-muted-foreground">· seller's general area</span>
+            </div>
             <div className="flex flex-wrap gap-2 text-xs">
               {book.deliveryOptions.selfDeliver && <Badge variant="secondary" className="gap-1"><Truck className="h-3 w-3" /> Self-delivery within {seller.radiusKm} km</Badge>}
               {book.deliveryOptions.courier    && <Badge variant="secondary" className="gap-1"><Truck className="h-3 w-3" /> Courier (arranged in chat, buyer pays)</Badge>}
             </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              Escrow orders must be delivered within {book.deliveryDeadlineDays} days.
+            </div>
           </div>
+
+          {isOwner && book.status === "approved" && (
+            <div className="mt-6 rounded-lg border border-border bg-card p-4">
+              {book.chatActivated ? (
+                <div className="flex items-center gap-2 text-sm text-accent">
+                  <CheckCircle2 className="h-4 w-4" /> Chat is active for this listing.
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Lock className="h-4 w-4 text-primary" /> Chat is locked for this listing
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Pay a one-time platform commission of ₹{chatFee} to let buyers chat with you about this book — whether or not it sells.
+                  </p>
+                  <Button className="mt-3" onClick={() => setActivateOpen(true)}>
+                    Activate chat for this listing · ₹{chatFee}
+                  </Button>
+                </>
+              )}
+              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                {book.sold ? "Marked sold — chat is closed." : "Mark the book sold from My Space to close chat."}
+              </div>
+            </div>
+          )}
 
           {book.status === "approved" ? (
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={requireAuth(() => setCheckoutKind("buy"))}>
+              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" disabled={book.sold} onClick={requireAuth(() => setCheckoutKind("buy"))}>
                 <ShoppingBag className="mr-2 h-4 w-4" /> Buy now
               </Button>
               {book.rentPerWeek && (
-                <Button size="lg" variant="outline" onClick={requireAuth(() => setCheckoutKind("rent"))}>
+                <Button size="lg" variant="outline" disabled={book.sold} onClick={requireAuth(() => setCheckoutKind("rent"))}>
                   <Repeat className="mr-2 h-4 w-4" /> Rent
                 </Button>
               )}
-              <Button size="lg" variant="outline" onClick={requireAuth(() => setBargainOpen(true))}>
+              <Button size="lg" variant="outline" disabled={book.sold} onClick={requireAuth(() => setBargainOpen(true))}>
                 <Handshake className="mr-2 h-4 w-4" /> Make an offer
               </Button>
-              <Button size="lg" variant="outline" onClick={requireAuth(() => setChatOpen(true))}>
-                <MessageCircle className="mr-2 h-4 w-4" /> Chat
+              <Button
+                size="lg"
+                variant="outline"
+                disabled={!chatOpenable}
+                onClick={requireAuth(() => setChatOpen(true))}
+              >
+                {chatOpenable ? <MessageCircle className="mr-2 h-4 w-4" /> : <Lock className="mr-2 h-4 w-4" />}
+                {book.sold ? "Chat closed (sold)" : chatOpenable ? "Chat" : "Chat not activated"}
               </Button>
             </div>
           ) : (
