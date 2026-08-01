@@ -245,6 +245,7 @@ function OrderStatusBadge({ status }: { status: Order["status"] }) {
     completed:         { label: "Completed",           cls: "bg-secondary text-secondary-foreground" },
     overdue_review:    { label: "Overdue — Review",    cls: "bg-destructive/10 text-destructive border-destructive/30" },
     cancelled:         { label: "Cancelled",           cls: "bg-destructive/10 text-destructive border-destructive/30" },
+    arranged_direct:   { label: "Arranged Directly",   cls: "bg-secondary text-secondary-foreground" },
   };
   const M = map[status];
   return <Badge variant="outline" className={`gap-1 border ${M.cls}`}><Package className="h-3 w-3" /> {M.label}</Badge>;

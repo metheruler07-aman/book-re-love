@@ -183,6 +183,7 @@ function StatusPill({ status }: { status: Order["status"] }) {
     completed:         { label: "Completed",         cls: "bg-secondary text-secondary-foreground",          icon: CheckCircle2 },
     overdue_review:    { label: "Overdue — review",  cls: "bg-destructive/10 text-destructive border-destructive/30", icon: Clock },
     cancelled:         { label: "Cancelled",         cls: "bg-destructive/10 text-destructive border-destructive/30", icon: Clock },
+    arranged_direct:   { label: "Buyer & Seller Arranged Directly", cls: "bg-secondary text-secondary-foreground", icon: Handshake },
   };
   const M = map[status];
   return (
