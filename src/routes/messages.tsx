@@ -65,7 +65,7 @@ function MessagesPage() {
                     {last ? last.text : "No messages yet."}
                   </div>
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => setOpenCall(otherId)}><Phone className="h-4 w-4" /></Button>
+                <Button size="sm" onClick={() => setOpenChat(otherId)}>
                 <Button size="sm" onClick={() => setOpenChat(otherId)}>
                   <MessageCircle className="mr-2 h-4 w-4" /> Open
                 </Button>
