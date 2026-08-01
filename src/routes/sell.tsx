@@ -363,6 +363,8 @@ function NewListingDialog() {
                 description: form.description || undefined,
                 deliveryOptions: delivery,
                 buybackWindowDays: Number(form.buybackWindowDays) || 30,
+                deliveryDeadlineDays: Number(form.deliveryDeadlineDays) || 7,
+                chatActivated: false, chatFee: 0, sold: false,
               });
               toast.success("Submitted for admin approval");
               setOpen(false);
