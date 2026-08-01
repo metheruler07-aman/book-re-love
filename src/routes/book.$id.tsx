@@ -505,7 +505,11 @@ function CheckoutDialog({
           </div>
 
           <div className="rounded-md bg-secondary/60 p-3 text-sm">
-            Total: <span className="font-display text-xl">₹{amount}</span>
+            {settlement === "direct" ? (
+              <>Settled directly with the seller — <span className="font-display text-xl">₹{amount}</span> is not collected by Book Ledger.</>
+            ) : (
+              <>Total: <span className="font-display text-xl">₹{amount}</span></>
+            )}
           </div>
         </div>
 
@@ -514,10 +518,10 @@ function CheckoutDialog({
           <Button
             onClick={() => {
               if (!pay || !mode) { toast.error("Pick delivery and payment"); return; }
-              onConfirm({ paymentMethod: pay, deliveryMode: mode, rentalWeeks: kind === "rent" ? weeks : undefined, amount });
+              onConfirm({ paymentMethod: pay, deliveryMode: mode, rentalWeeks: kind === "rent" ? weeks : undefined, amount, settlement });
             }}
           >
-            Place order
+            {settlement === "direct" ? "Confirm direct deal" : "Place order"}
           </Button>
         </DialogFooter>
       </DialogContent>
