@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Clock, ImagePlus, KeyRound, MessageCircle, Package, Truck } from "lucide-react";
+import { CheckCircle2, Clock, Handshake, ImagePlus, KeyRound, MessageCircle, Package, Truck } from "lucide-react";
 import { filesToDataUrls, useCurrentUser, useStore, type Order } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
