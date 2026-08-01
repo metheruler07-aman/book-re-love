@@ -269,6 +269,19 @@ function BookDetail() {
         }}
       />
 
+      <ActivateChatDialog
+        open={activateOpen}
+        onOpenChange={setActivateOpen}
+        fee={chatFee}
+        upiId={platformSettings.ownerUpiId}
+        bookTitle={book.title}
+        onPaid={async () => {
+          await activateListingChat(book.id);
+          setActivateOpen(false);
+          toast.success("Chat activated", { description: "Buyers can now message you about this listing." });
+        }}
+      />
+
       {checkoutKind && (
         <CheckoutDialog
           open={!!checkoutKind}
@@ -276,11 +289,18 @@ function BookDetail() {
           kind={checkoutKind}
           book={book}
           seller={seller}
-          onConfirm={async ({ paymentMethod, deliveryMode, rentalWeeks, amount }) => {
+          chatActivated={!!book.chatActivated}
+          onConfirm={async ({ paymentMethod, deliveryMode, rentalWeeks, amount, settlement }) => {
             const order = await createOrder({
-              bookId: book.id, kind: checkoutKind, rentalWeeks, amount, paymentMethod, deliveryMode,
+              bookId: book.id, kind: checkoutKind, rentalWeeks, amount, paymentMethod, deliveryMode, settlement,
             });
             setCheckoutKind(null);
+            if (settlement === "direct") {
+              await sendMessage(seller.id, `Hi ${seller.name} — I'd like to settle order ${order.id.slice(-4)} directly with you. Let's fix the amount and handover.`, book.id);
+              toast.success("Marked as arranged directly", { description: "No platform payment collected — settle with the seller." });
+              navigate({ to: "/orders" });
+              return;
+            }
             if (deliveryMode === "courier") {
               await sendMessage(seller.id, `Hi ${seller.name} — order ${order.id.slice(-4)} placed. Let's arrange courier: my address and any preferred courier? (Buyer pays courier.)`, book.id);
               toast.success("Order placed", { description: "Chat opened to arrange courier." });
