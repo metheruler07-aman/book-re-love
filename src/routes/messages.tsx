@@ -66,7 +66,6 @@ function MessagesPage() {
                   </div>
                 </div>
                 <Button size="sm" onClick={() => setOpenChat(otherId)}>
-                <Button size="sm" onClick={() => setOpenChat(otherId)}>
                   <MessageCircle className="mr-2 h-4 w-4" /> Open
                 </Button>
               </li>
@@ -76,7 +75,6 @@ function MessagesPage() {
       )}
 
       {openChat && <ChatDialog open onOpenChange={(v) => !v && setOpenChat(null)} otherId={openChat} />}
-      {openCall && <CallDialog open onOpenChange={(v) => !v && setOpenCall(null)} otherId={openCall} />}
     </div>
   );
 }
