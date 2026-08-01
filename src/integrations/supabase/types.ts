@@ -20,10 +20,14 @@ export type Database = {
           author: string
           buyback_window_days: number
           category: string
+          chat_activated: boolean
+          chat_fee: number
+          chat_paid_at: string | null
           commission_override: number | null
           condition: Database["public"]["Enums"]["condition_grade"]
           courier: boolean
           cover: string
+          delivery_deadline_days: number
           description: string | null
           id: string
           listed_at: string
@@ -35,6 +39,7 @@ export type Database = {
           rent_per_week: number | null
           self_deliver: boolean
           seller_id: string
+          sold: boolean
           status: Database["public"]["Enums"]["listing_status"]
           title: string
         }
@@ -43,10 +48,14 @@ export type Database = {
           author: string
           buyback_window_days?: number
           category?: string
+          chat_activated?: boolean
+          chat_fee?: number
+          chat_paid_at?: string | null
           commission_override?: number | null
           condition: Database["public"]["Enums"]["condition_grade"]
           courier?: boolean
           cover?: string
+          delivery_deadline_days?: number
           description?: string | null
           id?: string
           listed_at?: string
@@ -58,6 +67,7 @@ export type Database = {
           rent_per_week?: number | null
           self_deliver?: boolean
           seller_id: string
+          sold?: boolean
           status?: Database["public"]["Enums"]["listing_status"]
           title: string
         }
@@ -66,10 +76,14 @@ export type Database = {
           author?: string
           buyback_window_days?: number
           category?: string
+          chat_activated?: boolean
+          chat_fee?: number
+          chat_paid_at?: string | null
           commission_override?: number | null
           condition?: Database["public"]["Enums"]["condition_grade"]
           courier?: boolean
           cover?: string
+          delivery_deadline_days?: number
           description?: string | null
           id?: string
           listed_at?: string
@@ -81,6 +95,7 @@ export type Database = {
           rent_per_week?: number | null
           self_deliver?: boolean
           seller_id?: string
+          sold?: boolean
           status?: Database["public"]["Enums"]["listing_status"]
           title?: string
         }
@@ -455,6 +470,7 @@ export type Database = {
           received_photo: string | null
           rental_weeks: number | null
           seller_id: string
+          settlement: string
           status: Database["public"]["Enums"]["order_status"]
         }
         Insert: {
@@ -474,6 +490,7 @@ export type Database = {
           received_photo?: string | null
           rental_weeks?: number | null
           seller_id: string
+          settlement?: string
           status?: Database["public"]["Enums"]["order_status"]
         }
         Update: {
@@ -493,6 +510,7 @@ export type Database = {
           received_photo?: string | null
           rental_weeks?: number | null
           seller_id?: string
+          settlement?: string
           status?: Database["public"]["Enums"]["order_status"]
         }
         Relationships: [
@@ -511,6 +529,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_settings: {
+        Row: {
+          created_at: string
+          default_chat_fee: number
+          id: boolean
+          owner_upi_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_chat_fee?: number
+          id?: boolean
+          owner_upi_id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_chat_fee?: number
+          id?: boolean
+          owner_upi_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -814,6 +856,7 @@ export type Database = {
         | "cancelled"
         | "overdue_review"
         | "completed"
+        | "arranged_direct"
       payment_key: "upi" | "card" | "wallet" | "cod"
     }
     CompositeTypes: {
@@ -955,6 +998,7 @@ export const Constants = {
         "cancelled",
         "overdue_review",
         "completed",
+        "arranged_direct",
       ],
       payment_key: ["upi", "card", "wallet", "cod"],
     },

@@ -1,12 +1,12 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, MapPin, ShoppingBag, Repeat, HandCoins, Truck, MessageCircle, CreditCard, QrCode, Wallet, Banknote, Clock, XCircle, Percent, Handshake } from "lucide-react";
+import { ArrowLeft, MapPin, ShoppingBag, Repeat, HandCoins, Truck, MessageCircle, CreditCard, QrCode, Wallet, Banknote, Clock, XCircle, Percent, Handshake, Lock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { buybackPrice, useCurrentUser, useStore, type DeliveryMode, type PaymentKey } from "@/lib/mock-store";
+import { buybackPrice, useCurrentUser, useStore, type DeliveryMode, type PaymentKey, type Settlement } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
