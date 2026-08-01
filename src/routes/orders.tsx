@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Clock, ImagePlus, KeyRound, MessageCircle, Package, Truck } from "lucide-react";
+import { CheckCircle2, Clock, Handshake, ImagePlus, KeyRound, MessageCircle, Package, Truck } from "lucide-react";
 import { filesToDataUrls, useCurrentUser, useStore, type Order } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -183,6 +183,7 @@ function StatusPill({ status }: { status: Order["status"] }) {
     completed:         { label: "Completed",         cls: "bg-secondary text-secondary-foreground",          icon: CheckCircle2 },
     overdue_review:    { label: "Overdue — review",  cls: "bg-destructive/10 text-destructive border-destructive/30", icon: Clock },
     cancelled:         { label: "Cancelled",         cls: "bg-destructive/10 text-destructive border-destructive/30", icon: Clock },
+    arranged_direct:   { label: "Buyer & Seller Arranged Directly", cls: "bg-secondary text-secondary-foreground", icon: Handshake },
   };
   const M = map[status];
   return (

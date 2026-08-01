@@ -20,7 +20,17 @@ export type OrderStatus =
   | "delivered"
   | "cancelled"
   | "overdue_review"
-  | "completed";
+  | "completed"
+  | "arranged_direct";
+
+export type Settlement = "escrow" | "direct";
+
+/** Per buyer–seller pair message allowance. */
+export const CHAT_MESSAGE_LIMIT = 200;
+export const CHAT_GRACE_BUFFER = 10;
+export const CHAT_HARD_LIMIT = CHAT_MESSAGE_LIMIT + CHAT_GRACE_BUFFER;
+
+export type PlatformSettings = { ownerUpiId: string; defaultChatFee: number };
 
 export type PaymentMethods = { upi: boolean; card: boolean; wallet: boolean; cod: boolean };
 export type DeliveryOptions = { selfDeliver: boolean; courier: boolean };
@@ -56,6 +66,11 @@ export type Book = {
   rejectionNote?: string;
   deliveryOptions: DeliveryOptions;
   buybackWindowDays: number;
+  chatActivated: boolean;
+  chatFee: number;
+  chatPaidAt?: string;
+  deliveryDeadlineDays: number;
+  sold: boolean;
 };
 
 export type Note = {
@@ -146,6 +161,7 @@ export type Order = {
   receivedPhoto?: string;
   createdAt: string;
   notForResale: boolean;
+  settlement: Settlement;
 };
 
 export type BuybackStatus = "pending_inspection" | "approved" | "rejected";
@@ -224,6 +240,8 @@ type BookRow = {
   status: ListingStatus; rejection_note: string | null; commission_override: number | null;
   self_deliver: boolean; courier: boolean; removed: boolean; listed_at: string;
   buyback_window_days: number;
+  chat_activated?: boolean; chat_fee?: number; chat_paid_at?: string | null;
+  delivery_deadline_days?: number; sold?: boolean;
 };
 function toBook(b: BookRow): Book {
   return {
@@ -235,6 +253,11 @@ function toBook(b: BookRow): Book {
     rejectionNote: b.rejection_note ?? undefined, removed: b.removed || undefined,
     deliveryOptions: { selfDeliver: b.self_deliver, courier: b.courier },
     buybackWindowDays: b.buyback_window_days ?? 30,
+    chatActivated: !!b.chat_activated,
+    chatFee: b.chat_fee != null ? Number(b.chat_fee) : 49,
+    chatPaidAt: b.chat_paid_at ?? undefined,
+    deliveryDeadlineDays: b.delivery_deadline_days ?? 7,
+    sold: !!b.sold,
   };
 }
 type NoteRow = {
@@ -253,7 +276,7 @@ function toNote(n: NoteRow): Note {
 /* Store type */
 type CreateOrderInput = {
   bookId: string; kind: "buy" | "rent"; rentalWeeks?: number; amount: number;
-  paymentMethod: PaymentKey; deliveryMode: DeliveryMode;
+  paymentMethod: PaymentKey; deliveryMode: DeliveryMode; settlement: Settlement;
 };
 
 type Store = {
@@ -278,6 +301,7 @@ type Store = {
   buybackExtensions: BuybackExtension[];
   notifications: Notification[];
   unreadNotifications: number;
+  platformSettings: PlatformSettings;
 
   updateUser: (id: string, patch: Partial<User>) => Promise<void>;
   addBook: (b: Omit<Book, "id" | "listedAt" | "status">) => Promise<void>;
@@ -307,6 +331,12 @@ type Store = {
 
   getThread: (otherId: string, bookId?: string) => Thread;
   sendMessage: (otherId: string, text: string, bookId?: string) => Promise<{ redacted: boolean }>;
+  messageCountWith: (otherId: string) => number;
+
+  activateListingChat: (bookId: string) => Promise<void>;
+  markBookSold: (bookId: string, sold: boolean) => Promise<void>;
+  setListingChatFee: (bookId: string, fee: number) => Promise<void>;
+  updatePlatformSettings: (patch: Partial<PlatformSettings>) => Promise<void>;
 
   createOffer: (bookId: string, amount: number, message?: string) => Promise<void>;
   respondOffer: (id: string, action: "accept" | "decline" | "counter", counterAmount?: number, note?: string) => Promise<void>;
@@ -365,10 +395,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [buybackRequests, setBuybackRequests] = useState<BuybackRequest[]>([]);
   const [buybackExtensions, setBuybackExtensions] = useState<BuybackExtension[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [platformSettings, setPlatformSettings] = useState<PlatformSettings>({
+    ownerUpiId: "", defaultChatFee: 49,
+  });
 
   /* ---------- Loaders ---------- */
   const loadPublic = useCallback(async () => {
-    const [b, n, cReq, cUp, r, rl, ri, com, profs] = await Promise.all([
+  const [b, n, cReq, cUp, r, rl, ri, com, profs, ps] = await Promise.all([
       supabase.from("books").select("*").order("listed_at", { ascending: false }),
       supabase.from("notes").select("*").order("created_at", { ascending: false }),
       supabase.from("community_requests").select("*").order("created_at", { ascending: false }),
@@ -378,9 +411,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       supabase.from("recommendation_interests").select("*"),
       supabase.from("commissions").select("*"),
       supabase.from("profiles").select("*"),
+      supabase.from("platform_settings").select("*").maybeSingle(),
     ]);
     setBooks((b.data ?? []).map((row) => toBook(row as unknown as BookRow)));
     setNotes((n.data ?? []).map((row) => toNote(row as unknown as NoteRow)));
+    if (ps.data) {
+      setPlatformSettings({
+        ownerUpiId: (ps.data as { owner_upi_id: string }).owner_upi_id ?? "",
+        defaultChatFee: Number((ps.data as { default_chat_fee: number }).default_chat_fee ?? 49),
+      });
+    }
+
 
     const ups = (cUp.data ?? []) as { request_id: string; user_id: string }[];
     setRequests(((cReq.data ?? []) as Array<{ id: string; title: string; author: string | null; note: string | null; requester_id: string; created_at: string }>).map((r0) => ({
@@ -438,7 +479,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       id: string; buyer_id: string; seller_id: string; book_id: string | null; kind: string;
       rental_weeks: number | null; amount: number; payment_method: PaymentKey;
       delivery_mode: DeliveryMode; handoff_code: string | null; received_photo: string | null;
-      status: OrderStatus; created_at: string; not_for_resale: boolean;
+      status: OrderStatus; created_at: string; not_for_resale: boolean; settlement?: string;
     }>).map((o0) => ({
       id: o0.id, bookId: o0.book_id ?? "", buyerId: o0.buyer_id, sellerId: o0.seller_id,
       kind: (o0.kind === "rent" ? "rent" : "buy"),
@@ -448,6 +489,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       receivedPhoto: o0.received_photo ?? undefined,
       status: o0.status, createdAt: o0.created_at,
       notForResale: !!o0.not_for_resale,
+      settlement: (o0.settlement === "direct" ? "direct" : "escrow") as Settlement,
     })));
 
     setOffers(((of0.data ?? []) as Array<{
@@ -585,6 +627,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     buybackRequests, buybackExtensions,
     notifications,
     unreadNotifications: notifications.filter((n) => !n.read).length,
+    platformSettings,
+
+    messageCountWith: (otherId) => {
+      const t = threads.find((th) => th.participants.includes(currentUserId) && th.participants.includes(otherId));
+      return t ? t.messages.length : 0;
+    },
+    activateListingChat: async (bookId) => {
+      await supabase.from("books")
+        .update({ chat_activated: true, chat_paid_at: new Date().toISOString() })
+        .eq("id", bookId);
+      await refresh();
+    },
+    markBookSold: async (bookId, sold) => {
+      await supabase.from("books").update({ sold }).eq("id", bookId);
+      await refresh();
+    },
+    setListingChatFee: async (bookId, fee) => {
+      await supabase.from("books").update({ chat_fee: fee }).eq("id", bookId);
+      await refresh();
+    },
+    updatePlatformSettings: async (patch) => {
+      await supabase.from("platform_settings").update({
+        ...(patch.ownerUpiId != null ? { owner_upi_id: patch.ownerUpiId } : {}),
+        ...(patch.defaultChatFee != null ? { default_chat_fee: patch.defaultChatFee } : {}),
+      }).eq("id", true);
+      await refresh();
+    },
+
 
     markNotificationRead: async (id) => {
       if (!currentUserId) return;
@@ -613,6 +683,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         original_price: b.originalPrice, description: b.description ?? null,
         self_deliver: b.deliveryOptions.selfDeliver, courier: b.deliveryOptions.courier,
         buyback_window_days: b.buybackWindowDays,
+        delivery_deadline_days: b.deliveryDeadlineDays,
+        chat_fee: b.chatFee || platformSettings.defaultChatFee,
       });
       await refresh();
     },
@@ -625,6 +697,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         self_deliver: patch.deliveryOptions?.selfDeliver,
         courier: patch.deliveryOptions?.courier,
         ...(patch.buybackWindowDays != null ? { buyback_window_days: patch.buybackWindowDays } : {}),
+        ...(patch.deliveryDeadlineDays != null ? { delivery_deadline_days: patch.deliveryDeadlineDays } : {}),
+        ...(patch.sold != null ? { sold: patch.sold } : {}),
       }).eq("id", id);
       await refresh();
     },
@@ -774,8 +848,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.from("orders").insert({
         buyer_id: currentUserId, seller_id: book.sellerId, book_id: book.id,
         kind: input.kind, rental_weeks: input.rentalWeeks ?? null,
-        amount: input.amount, payment_method: input.paymentMethod,
+        amount: input.settlement === "direct" ? 0 : input.amount,
+        payment_method: input.paymentMethod,
         delivery_mode: input.deliveryMode,
+        settlement: input.settlement,
+        ...(input.settlement === "direct" ? { status: "arranged_direct" as const } : {}),
       }).select("*").single();
       if (error || !data) throw error ?? new Error("Order failed");
       const row = data as {
@@ -788,7 +865,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         kind: input.kind, rentalWeeks: row.rental_weeks ?? undefined, amount: Number(row.amount),
         paymentMethod: row.payment_method, deliveryMode: row.delivery_mode,
         handoffCode: row.handoff_code ?? undefined, status: row.status, createdAt: row.created_at,
-        notForResale: false,
+        notForResale: false, settlement: input.settlement,
       };
       await loadPrivate(currentUserId);
       return order;
@@ -859,7 +936,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }), [
     currentUserId, signedIn, loading, users, books, notes, requests, recommendations,
     threads, commissions, queries, offers, orders, buybackRequests, buybackExtensions,
-    notifications, loadPrivate, loadPublic,
+    notifications, platformSettings, loadPrivate, loadPublic,
   ]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

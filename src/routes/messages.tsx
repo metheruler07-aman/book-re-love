@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { MessageCircle, Phone, ShieldCheck } from "lucide-react";
+import { MessageCircle, ShieldCheck } from "lucide-react";
 import { useCurrentUser, useStore } from "@/lib/mock-store";
-import { ChatDialog, CallDialog } from "@/components/chat-call";
+import { ChatDialog } from "@/components/chat-call";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/messages")({
@@ -26,7 +26,6 @@ function MessagesPage() {
   if (!signedIn) return null;
   const mine = threads.filter((t) => t.participants.includes(me.id));
   const [openChat, setOpenChat] = useState<string | null>(null);
-  const [openCall, setOpenCall] = useState<string | null>(null);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -66,7 +65,6 @@ function MessagesPage() {
                     {last ? last.text : "No messages yet."}
                   </div>
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => setOpenCall(otherId)}><Phone className="h-4 w-4" /></Button>
                 <Button size="sm" onClick={() => setOpenChat(otherId)}>
                   <MessageCircle className="mr-2 h-4 w-4" /> Open
                 </Button>
@@ -77,7 +75,6 @@ function MessagesPage() {
       )}
 
       {openChat && <ChatDialog open onOpenChange={(v) => !v && setOpenChat(null)} otherId={openChat} />}
-      {openCall && <CallDialog open onOpenChange={(v) => !v && setOpenCall(null)} otherId={openCall} />}
     </div>
   );
 }
