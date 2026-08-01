@@ -270,13 +270,13 @@ function NewListingDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: "", author: "", cover: "📖", price: "", originalPrice: "", rentPerWeek: "",
-    condition: "Good" as Condition, category: "Fiction", description: "", buybackWindowDays: "30",
+    condition: "Good" as Condition, category: "Fiction", description: "", buybackWindowDays: "30", deliveryDeadlineDays: "7",
   });
   const [photos, setPhotos] = useState<string[]>([]);
   const [delivery, setDelivery] = useState<DeliveryOptions>({ selfDeliver: true, courier: false });
 
   const reset = () => {
-    setForm({ title: "", author: "", cover: "📖", price: "", originalPrice: "", rentPerWeek: "", condition: "Good", category: "Fiction", description: "", buybackWindowDays: "30" });
+    setForm({ title: "", author: "", cover: "📖", price: "", originalPrice: "", rentPerWeek: "", condition: "Good", category: "Fiction", description: "", buybackWindowDays: "30", deliveryDeadlineDays: "7" });
     setPhotos([]);
     setDelivery({ selfDeliver: true, courier: false });
   };
@@ -327,6 +327,15 @@ function NewListingDialog() {
             />
             <p className="mt-1 text-[11px] text-muted-foreground">
               How many days after purchase a buyer can request buyback. They can still ask you to extend past this window.
+            </p>
+          </Field>
+          <Field label="Delivery deadline (days)">
+            <Input
+              type="number" min={1} value={form.deliveryDeadlineDays}
+              onChange={(e) => setForm({ ...form, deliveryDeadlineDays: e.target.value })}
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              For escrow orders: how many days you have to hand over the book after payment.
             </p>
           </Field>
           <Field label="Description (optional)">
