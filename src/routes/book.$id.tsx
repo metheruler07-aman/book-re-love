@@ -39,7 +39,7 @@ const PAY_META: Record<PaymentKey, { icon: typeof QrCode; label: string }> = {
 
 function BookDetail() {
   const { id } = Route.useParams();
-  const { books, users, commissions, signedIn, createOffer, createOrder, sendMessage } = useStore();
+  const { books, users, commissions, signedIn, createOffer, createOrder, sendMessage, platformSettings, activateListingChat } = useStore();
   const me = useCurrentUser();
   const navigate = useNavigate();
   const book = books.find((b) => b.id === id && !b.removed);
@@ -52,11 +52,14 @@ function BookDetail() {
   const isOwner = me.id === book.sellerId;
   const isAdmin = me.role === "admin";
   const isVisible = book.status === "approved" || isOwner || isAdmin;
+  const chatFee = book.chatFee || platformSettings.defaultChatFee;
+  const chatOpenable = book.chatActivated && !book.sold;
 
   const [chatOpen, setChatOpen] = useState(false);
   const [heroIdx, setHeroIdx] = useState(0);
   const [checkoutKind, setCheckoutKind] = useState<"buy" | "rent" | null>(null);
   const [bargainOpen, setBargainOpen] = useState(false);
+  const [activateOpen, setActivateOpen] = useState(false);
 
   const requireAuth = (fn: () => void) => () => {
     if (!signedIn) { toast("Sign in to continue"); navigate({ to: "/auth" }); return; }
