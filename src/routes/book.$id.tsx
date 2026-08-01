@@ -345,15 +345,44 @@ function BargainDialog({ open, onOpenChange, listedPrice, onSubmit }: {
   );
 }
 
+function ActivateChatDialog({ open, onOpenChange, fee, upiId, bookTitle, onPaid }: {
+  open: boolean; onOpenChange: (v: boolean) => void; fee: number; upiId: string;
+  bookTitle: string; onPaid: () => void;
+}) {
+  const upiLink = `upi://pay?pa=${encodeURIComponent(upiId || "owner@upi")}&pn=Book%20Ledger&am=${fee}&cu=INR&tn=${encodeURIComponent(`Chat activation: ${bookTitle}`)}`;
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiLink)}`;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle className="font-display">Activate chat · ₹{fee}</DialogTitle></DialogHeader>
+        <div className="grid gap-3 py-2 text-center">
+          <img src={qrSrc} alt={`UPI QR code to pay ₹${fee} chat activation fee`} className="mx-auto h-52 w-52 rounded-md border border-border bg-card p-2" />
+          <div className="text-sm">
+            Pay ₹{fee} to <span className="font-medium">{upiId || "the owner's UPI ID"}</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            One-time platform commission for this listing — separate from any sale, whether or not the book sells.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={onPaid}>Mark as Paid</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function CheckoutDialog({
-  open, onOpenChange, kind, book, seller, onConfirm,
+  open, onOpenChange, kind, book, seller, chatActivated, onConfirm,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   kind: "buy" | "rent";
   book: ReturnType<typeof useStore>["books"][number];
   seller: ReturnType<typeof useStore>["users"][number];
-  onConfirm: (v: { paymentMethod: PaymentKey; deliveryMode: DeliveryMode; rentalWeeks?: number; amount: number }) => void;
+  chatActivated: boolean;
+  onConfirm: (v: { paymentMethod: PaymentKey; deliveryMode: DeliveryMode; rentalWeeks?: number; amount: number; settlement: Settlement }) => void;
 }) {
   const availableMethods = (Object.keys(PAY_META) as PaymentKey[]).filter((k) => seller.paymentMethods[k]);
   const availableDelivery: DeliveryMode[] = [
@@ -364,6 +393,7 @@ function CheckoutDialog({
   const [pay, setPay] = useState<PaymentKey | "">(availableMethods[0] ?? "");
   const [mode, setMode] = useState<DeliveryMode | "">(availableDelivery[0] ?? "");
   const [weeks, setWeeks] = useState<number>(1);
+  const [settlement, setSettlement] = useState<Settlement>("escrow");
 
   const amount = useMemo(() => {
     if (kind === "buy") return book.price;
@@ -378,6 +408,36 @@ function CheckoutDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
+          <div className="grid gap-1.5">
+            <Label className="text-xs">How would you like to pay?</Label>
+            <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5" /> Seller's area: {seller.area || "not set"}
+            </div>
+            <RadioGroup value={settlement} onValueChange={(v) => setSettlement(v as Settlement)} className="grid gap-2">
+              <label className="flex items-start gap-2 rounded-md border border-border p-3 text-sm">
+                <RadioGroupItem value="escrow" />
+                <div>
+                  <div className="font-medium">Pay via app (Razorpay escrow)</div>
+                  <div className="text-xs text-muted-foreground">
+                    Money is held until handoff is confirmed. Seller must deliver within {book.deliveryDeadlineDays} days.
+                  </div>
+                </div>
+              </label>
+              <label className={`flex items-start gap-2 rounded-md border border-border p-3 text-sm ${chatActivated ? "" : "opacity-60"}`}>
+                <RadioGroupItem value="direct" disabled={!chatActivated} />
+                <div>
+                  <div className="font-medium">Pay directly to seller</div>
+                  <div className="text-xs text-muted-foreground">
+                    {chatActivated
+                      ? "Settled outside the app. No escrow tracking — marked \"Buyer & Seller Arranged Directly\"."
+                      : "Available once the seller activates chat for this listing."}
+                  </div>
+                </div>
+              </label>
+            </RadioGroup>
+          </div>
+
+
           {kind === "rent" && (
             <div className="grid gap-1.5">
               <Label className="text-xs">Rental duration (weeks)</Label>
