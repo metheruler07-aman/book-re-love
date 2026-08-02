@@ -631,17 +631,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => { alive = false; };
   }, [currentUserId, loadPublic, loadPrivate]);
 
-  // Realtime: refresh private data on changes
+  /* Realtime is opt-in per page. A page/component calls `useLiveTables([...])`
+   * and the subscription only exists while at least one of those mounts is
+   * alive — nothing streams in the background on unrelated pages. */
+  const activeTables = useMemo(
+    () => Object.keys(liveScopes).filter((t) => liveScopes[t] > 0).sort(),
+    [liveScopes],
+  );
+  const activeKey = activeTables.join(",");
   useEffect(() => {
-    if (!currentUserId) return;
-    const ch = supabase.channel("bl-private")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => loadPrivate(currentUserId))
-      .on("postgres_changes", { event: "*", schema: "public", table: "offers" }, () => loadPrivate(currentUserId))
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => loadPrivate(currentUserId))
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${currentUserId}` }, () => loadPrivate(currentUserId))
-      .subscribe();
+    if (!currentUserId || !activeKey) return;
+    const tables = activeKey.split(",");
+    let ch = supabase.channel(`bl-live-${activeKey}`);
+    for (const table of tables) {
+      ch = ch.on(
+        "postgres_changes",
+        table === "notifications"
+          ? { event: "*", schema: "public", table, filter: `user_id=eq.${currentUserId}` }
+          : { event: "*", schema: "public", table },
+        () => loadPrivate(currentUserId),
+      );
+    }
+    ch.subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [currentUserId, loadPrivate]);
+  }, [currentUserId, activeKey, loadPrivate]);
+
 
   /* ---------- Mutations ---------- */
   const refresh = async () => {
