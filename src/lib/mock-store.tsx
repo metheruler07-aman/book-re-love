@@ -44,7 +44,14 @@ export type User = {
   shipsBeyondRadius: boolean;
   paymentMethods: PaymentMethods;
   blocked?: boolean;
+  /** Private — only readable by the owner and admins. */
+  phone?: string;
+  /** Private — only readable by the owner and admins. */
+  address?: string;
+  notificationsEnabled?: boolean;
+  deletionRequested?: boolean;
 };
+
 
 export type Book = {
   id: string;
@@ -85,7 +92,9 @@ export type Note = {
   removed?: boolean;
   status: ListingStatus;
   rejectionNote?: string;
+  sold?: boolean;
 };
+
 
 export type Request = {
   id: string;
@@ -222,6 +231,8 @@ type ProfileRow = {
   id: string; name: string; area: string; radius_km: number;
   ships_beyond_radius: boolean; payment_methods: PaymentMethods; blocked: boolean;
   is_admin?: boolean;
+  phone?: string; address?: string;
+  notifications_enabled?: boolean; deletion_requested?: boolean;
 };
 function toUser(p: ProfileRow, role: Role): User {
   return {
@@ -230,8 +241,14 @@ function toUser(p: ProfileRow, role: Role): User {
     shipsBeyondRadius: !!p.ships_beyond_radius,
     paymentMethods: p.payment_methods ?? { upi: true, card: false, wallet: false, cod: true },
     blocked: !!p.blocked,
+    // These come only from the privileged `profiles` overlay (own row / admin).
+    phone: p.phone ?? undefined,
+    address: p.address ?? undefined,
+    notificationsEnabled: p.notifications_enabled ?? true,
+    deletionRequested: !!p.deletion_requested,
   };
 }
+
 
 type BookRow = {
   id: string; seller_id: string; title: string; author: string; cover: string;
@@ -264,14 +281,17 @@ type NoteRow = {
   id: string; seller_id: string; title: string; course: string; price: number;
   pages: number; is_digital: boolean; photos: string[]; status: ListingStatus;
   rejection_note: string | null; commission_override: number | null; removed: boolean;
+  sold?: boolean;
 };
 function toNote(n: NoteRow): Note {
   return {
     id: n.id, title: n.title, course: n.course, price: Number(n.price),
     sellerId: n.seller_id, pages: n.pages, isDigital: n.is_digital, photos: n.photos ?? [],
     status: n.status, rejectionNote: n.rejection_note ?? undefined, removed: n.removed || undefined,
+    sold: !!n.sold,
   };
 }
+
 
 /* Store type */
 type CreateOrderInput = {
@@ -335,6 +355,9 @@ type Store = {
 
   activateListingChat: (bookId: string) => Promise<void>;
   markBookSold: (bookId: string, sold: boolean) => Promise<void>;
+  markNoteSold: (noteId: string, sold: boolean) => Promise<void>;
+  requestAccountDeletion: () => Promise<void>;
+
   setListingChatFee: (bookId: string, fee: number) => Promise<void>;
   updatePlatformSettings: (patch: Partial<PlatformSettings>) => Promise<void>;
 
@@ -356,6 +379,22 @@ type Store = {
 };
 
 const Ctx = createContext<Store | null>(null);
+const LiveCtx = createContext<((tables: string[]) => () => void) | null>(null);
+
+/**
+ * Opt a page into realtime updates for the given tables. The underlying
+ * Supabase channel exists only while a component using this hook is mounted,
+ * so chat/order/notification streams stop as soon as you leave the page.
+ */
+export function useLiveTables(tables: string[]) {
+  const register = useContext(LiveCtx);
+  const key = tables.join(",");
+  useEffect(() => {
+    if (!register || !key) return;
+    return register(key.split(","));
+  }, [register, key]);
+}
+
 const ANON: User = {
   id: "", name: "Guest", role: "user", area: "", radiusKm: 5, shipsBeyondRadius: false,
   paymentMethods: { upi: true, card: false, wallet: false, cod: true },
@@ -398,6 +437,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings>({
     ownerUpiId: "", defaultChatFee: 49,
   });
+  /** Refcount of pages currently interested in realtime updates per table. */
+  const [liveScopes, setLiveScopes] = useState<Record<string, number>>({});
+  const registerLive = useCallback((tables: string[]) => {
+    setLiveScopes((cur) => {
+      const next = { ...cur };
+      for (const t of tables) next[t] = (next[t] ?? 0) + 1;
+      return next;
+    });
+    return () => setLiveScopes((cur) => {
+      const next = { ...cur };
+      for (const t of tables) next[t] = Math.max(0, (next[t] ?? 1) - 1);
+      return next;
+    });
+  }, []);
+
+
 
   /* ---------- Loaders ---------- */
   const loadPublic = useCallback(async () => {
@@ -608,17 +663,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => { alive = false; };
   }, [currentUserId, loadPublic, loadPrivate]);
 
-  // Realtime: refresh private data on changes
+  /* Realtime is opt-in per page. A page/component calls `useLiveTables([...])`
+   * and the subscription only exists while at least one of those mounts is
+   * alive — nothing streams in the background on unrelated pages. */
+  const activeTables = useMemo(
+    () => Object.keys(liveScopes).filter((t) => liveScopes[t] > 0).sort(),
+    [liveScopes],
+  );
+  const activeKey = activeTables.join(",");
   useEffect(() => {
-    if (!currentUserId) return;
-    const ch = supabase.channel("bl-private")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => loadPrivate(currentUserId))
-      .on("postgres_changes", { event: "*", schema: "public", table: "offers" }, () => loadPrivate(currentUserId))
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => loadPrivate(currentUserId))
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${currentUserId}` }, () => loadPrivate(currentUserId))
-      .subscribe();
+    if (!currentUserId || !activeKey) return;
+    const tables = activeKey.split(",");
+    let ch = supabase.channel(`bl-live-${activeKey}`);
+    for (const table of tables) {
+      ch = ch.on(
+        "postgres_changes",
+        table === "notifications"
+          ? { event: "*", schema: "public", table, filter: `user_id=eq.${currentUserId}` }
+          : { event: "*", schema: "public", table },
+        () => loadPrivate(currentUserId),
+      );
+    }
+    ch.subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [currentUserId, loadPrivate]);
+  }, [currentUserId, activeKey, loadPrivate]);
+
 
   /* ---------- Mutations ---------- */
   const refresh = async () => {
@@ -648,9 +717,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await refresh();
     },
     markBookSold: async (bookId, sold) => {
+      setBooks((cur) => cur.map((b) => (b.id === bookId ? { ...b, sold } : b)));
       await supabase.from("books").update({ sold }).eq("id", bookId);
+    },
+    markNoteSold: async (noteId, sold) => {
+      setNotes((cur) => cur.map((n) => (n.id === noteId ? { ...n, sold } : n)));
+      await supabase.from("notes").update({ sold }).eq("id", noteId);
+    },
+    requestAccountDeletion: async () => {
+      if (!currentUserId) return;
+      await supabase.from("profiles").update({
+        deletion_requested: true,
+        deletion_requested_at: new Date().toISOString(),
+      }).eq("id", currentUserId);
+      await supabase.from("support_queries").insert({
+        user_id: currentUserId,
+        subject: "Account deletion request",
+        body: "This user has requested that their Book Ledger account and data be deleted. Please review and action.",
+      });
       await refresh();
     },
+
     setListingChatFee: async (bookId, fee) => {
       await supabase.from("books").update({ chat_fee: fee }).eq("id", bookId);
       await refresh();
@@ -676,15 +763,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
 
     updateUser: async (id, patch) => {
-      await supabase.from("profiles").update({
-        name: patch.name, area: patch.area, radius_km: patch.radiusKm,
-        ships_beyond_radius: patch.shipsBeyondRadius, payment_methods: patch.paymentMethods,
-      }).eq("id", id);
-      await refresh();
+      const row: {
+        name?: string; area?: string; radius_km?: number; ships_beyond_radius?: boolean;
+        payment_methods?: PaymentMethods; phone?: string; address?: string;
+        notifications_enabled?: boolean;
+      } = {};
+
+      if (patch.name !== undefined) row.name = patch.name;
+      if (patch.area !== undefined) row.area = patch.area;
+      if (patch.radiusKm !== undefined) row.radius_km = patch.radiusKm;
+      if (patch.shipsBeyondRadius !== undefined) row.ships_beyond_radius = patch.shipsBeyondRadius;
+      if (patch.paymentMethods !== undefined) row.payment_methods = patch.paymentMethods;
+      if (patch.phone !== undefined) row.phone = patch.phone;
+      if (patch.address !== undefined) row.address = patch.address;
+      if (patch.notificationsEnabled !== undefined) row.notifications_enabled = patch.notificationsEnabled;
+      if (Object.keys(row).length === 0) return;
+      // Optimistic: reflect immediately, then persist.
+      setUsers((cur) => cur.map((u) => (u.id === id ? { ...u, ...patch } : u)));
+      await supabase.from("profiles").update(row).eq("id", id);
     },
     addBook: async (b) => {
       if (!currentUserId) return;
-      await supabase.from("books").insert({
+      // Insert and return the row straight away — the seller's listing must reach
+      // the admin queue without waiting on a full public/private reload.
+      const { data, error } = await supabase.from("books").insert({
         seller_id: currentUserId, title: b.title, author: b.author, cover: b.cover || "📖",
         photos: b.photos, price: b.price, rent_per_week: b.rentPerWeek ?? null,
         condition: b.condition, category: b.category, area: b.area,
@@ -693,9 +795,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         buyback_window_days: b.buybackWindowDays,
         delivery_deadline_days: b.deliveryDeadlineDays,
         chat_fee: b.chatFee || platformSettings.defaultChatFee,
-      });
-      await refresh();
+      }).select("*").single();
+      if (error) throw error;
+      if (data) setBooks((cur) => [toBook(data as unknown as BookRow), ...cur]);
     },
+
     updateBook: async (id, patch) => {
       await supabase.from("books").update({
         title: patch.title, author: patch.author, price: patch.price,
@@ -947,7 +1051,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     notifications, platformSettings, loadPrivate, loadPublic,
   ]);
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return (
+    <LiveCtx.Provider value={registerLive}>
+      <Ctx.Provider value={value}>{children}</Ctx.Provider>
+    </LiveCtx.Provider>
+  );
+
 }
 
 export function useStore() {

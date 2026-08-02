@@ -6,8 +6,10 @@ import {
   CHAT_HARD_LIMIT,
   CHAT_MESSAGE_LIMIT,
   useCurrentUser,
+  useLiveTables,
   useStore,
 } from "@/lib/mock-store";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -20,6 +22,10 @@ export function ChatDialog({
   const other = users.find((u) => u.id === otherId);
   const book = bookId ? books.find((b) => b.id === bookId) : undefined;
   const [text, setText] = useState("");
+
+  // Live message updates only while this dialog is actually open.
+  useLiveTables(open ? ["messages"] : []);
+
 
   // ensure thread exists when opened
   useEffect(() => { if (open) getThread(otherId, bookId); }, [open, otherId, bookId, getThread]);

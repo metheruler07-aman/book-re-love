@@ -4,7 +4,7 @@ export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
       { title: "Terms of Service — Book Ledger" },
-      { name: "description", content: "The terms that govern your use of Book Ledger — buying, selling, renting, buybacks, notes, chat, and calls." },
+      { name: "description", content: "The terms that govern your use of Book Ledger — buying, selling, renting, buybacks, notes, and chat." },
       { property: "og:title", content: "Terms of Service — Book Ledger" },
       { property: "og:description", content: "The terms that govern your use of Book Ledger." },
       { property: "og:url", content: "/terms" },
@@ -69,13 +69,14 @@ function TermsPage() {
           </ul>
         </Section>
 
-        <Section n="8" title="Chat and calls">
+        <Section n="8" title="Chat">
           <ul className="list-disc space-y-1 pl-6">
             <li>Messaging between buyers and sellers is provided so you can coordinate a purchase, not to move the transaction off-platform.</li>
             <li>Sharing personal contact details in chat is not allowed and may result in your account being restricted.</li>
-            <li>Voice calls made through the app keep both parties' phone numbers private.</li>
+            <li>Book Ledger does not offer in-app calling — all coordination happens in chat.</li>
           </ul>
         </Section>
+
 
         <Section n="9" title="Prohibited conduct">
           <p>You may not:</p>

@@ -1,10 +1,15 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Moon, Sun, LogIn, LogOut, Menu, LifeBuoy, Shield, Store, MessageCircle, Sparkles, Users, ScrollText, Search, Package, User as UserIcon } from "lucide-react";
+import { Moon, Sun, LogIn, LogOut, Menu, LifeBuoy, Shield, Store, MessageCircle, Sparkles, Users, ScrollText, Search, Package, Settings, User as UserIcon } from "lucide-react";
 import { useCurrentUser, useStore, useTheme } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/notification-bell";
+
 
 const shopLinks = [
   { to: "/browse" as const,          label: "Shop",   icon: Search },
@@ -52,6 +57,8 @@ export function SiteHeader() {
                   <DrawerLink to="/messages" icon={MessageCircle} label="Messages" onNav={closeDrawer} />
                   <DrawerLink to="/orders" icon={Package} label="Orders" onNav={closeDrawer} />
                   <DrawerLink to="/support" icon={LifeBuoy} label="Raise a query" onNav={closeDrawer} />
+                  <DrawerLink to="/settings" icon={Settings} label="Settings" onNav={closeDrawer} />
+
                   {me.role === "admin" && <DrawerLink to="/admin" icon={Shield} label="Admin console" onNav={closeDrawer} />}
                 </NavGroup>
               )}
@@ -91,15 +98,30 @@ export function SiteHeader() {
           {signedIn && <NotificationBell />}
 
           {signedIn ? (
-            <>
-              <Link to="/my-space" className="hidden text-sm text-muted-foreground hover:text-foreground lg:inline">
-                {me.name}
-              </Link>
-              <Button size="icon" variant="ghost" onClick={async () => { await signOut(); navigate({ to: "/auth" }); }} aria-label="Sign out">
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2" aria-label="Account menu">
+                  <UserIcon className="h-4 w-4" />
+                  <span className="hidden max-w-[10ch] truncate lg:inline">{me.name}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="truncate">{me.name}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/my-space"><UserIcon className="mr-2 h-4 w-4" /> My Space</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings"><Settings className="mr-2 h-4 w-4" /> Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={async () => { await signOut(); navigate({ to: "/auth" }); }}>
+                  <LogOut className="mr-2 h-4 w-4" /> Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
+
             <Button size="sm" onClick={() => navigate({ to: "/auth" })}>
               <LogIn className="mr-2 h-4 w-4" /> Sign in
             </Button>

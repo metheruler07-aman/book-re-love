@@ -45,7 +45,7 @@ function PrivacyPage() {
         <Section n="3" title="What we don't do">
           <ul className="list-disc space-y-1 pl-6">
             <li>We don't sell your personal data to advertisers.</li>
-            <li>We don't show your phone number to other users. Calls made through the app hide both parties' numbers.</li>
+            <li>Your phone number and address are never shown to other users — only the admin team can see them.</li>
           </ul>
         </Section>
 
