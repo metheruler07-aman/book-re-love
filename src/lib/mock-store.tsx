@@ -671,9 +671,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await refresh();
     },
     markBookSold: async (bookId, sold) => {
+      setBooks((cur) => cur.map((b) => (b.id === bookId ? { ...b, sold } : b)));
       await supabase.from("books").update({ sold }).eq("id", bookId);
+    },
+    markNoteSold: async (noteId, sold) => {
+      setNotes((cur) => cur.map((n) => (n.id === noteId ? { ...n, sold } : n)));
+      await supabase.from("notes").update({ sold }).eq("id", noteId);
+    },
+    requestAccountDeletion: async () => {
+      if (!currentUserId) return;
+      await supabase.from("profiles").update({
+        deletion_requested: true,
+        deletion_requested_at: new Date().toISOString(),
+      }).eq("id", currentUserId);
+      await supabase.from("support_queries").insert({
+        user_id: currentUserId,
+        subject: "Account deletion request",
+        body: "This user has requested that their Book Ledger account and data be deleted. Please review and action.",
+      });
       await refresh();
     },
+
     setListingChatFee: async (bookId, fee) => {
       await supabase.from("books").update({ chat_fee: fee }).eq("id", bookId);
       await refresh();
