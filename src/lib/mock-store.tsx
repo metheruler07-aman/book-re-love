@@ -717,7 +717,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
 
     updateUser: async (id, patch) => {
-      const row: Record<string, unknown> = {};
+      const row: {
+        name?: string; area?: string; radius_km?: number; ships_beyond_radius?: boolean;
+        payment_methods?: PaymentMethods; phone?: string; address?: string;
+        notifications_enabled?: boolean;
+      } = {};
+
       if (patch.name !== undefined) row.name = patch.name;
       if (patch.area !== undefined) row.area = patch.area;
       if (patch.radiusKm !== undefined) row.radius_km = patch.radiusKm;
