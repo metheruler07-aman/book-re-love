@@ -92,7 +92,9 @@ export type Note = {
   removed?: boolean;
   status: ListingStatus;
   rejectionNote?: string;
+  sold?: boolean;
 };
+
 
 export type Request = {
   id: string;
