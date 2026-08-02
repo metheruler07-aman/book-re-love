@@ -99,10 +99,20 @@ function Browse() {
           No books match those filters yet.
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {results.map((b) => <BookCard key={b.id} book={b} />)}
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {shown.map((b) => <BookCard key={b.id} book={b} />)}
+          </div>
+          {visible < results.length && (
+            <div className="mt-8 flex justify-center">
+              <Button variant="outline" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
+                Load more ({results.length - visible} left)
+              </Button>
+            </div>
+          )}
+        </>
       )}
+
     </div>
   );
 }
