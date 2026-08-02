@@ -6,8 +6,10 @@ import {
   CHAT_HARD_LIMIT,
   CHAT_MESSAGE_LIMIT,
   useCurrentUser,
+  useLiveTables,
   useStore,
 } from "@/lib/mock-store";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
