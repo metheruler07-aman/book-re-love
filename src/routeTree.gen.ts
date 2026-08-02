@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SupportRouteImport } from './routes/support'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -34,6 +35,11 @@ const TermsRoute = TermsRouteImport.update({
 const SupportRoute = SupportRouteImport.update({
   id: '/support',
   path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SellRoute = SellRouteImport.update({
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
+  '/settings': typeof SettingsRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/book/$id': typeof BookIdRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
+  '/settings': typeof SettingsRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/book/$id': typeof BookIdRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
+  '/settings': typeof SettingsRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/book/$id': typeof BookIdRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/recommendations'
     | '/sell'
+    | '/settings'
     | '/support'
     | '/terms'
     | '/book/$id'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/recommendations'
     | '/sell'
+    | '/settings'
     | '/support'
     | '/terms'
     | '/book/$id'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/recommendations'
     | '/sell'
+    | '/settings'
     | '/support'
     | '/terms'
     | '/book/$id'
@@ -233,6 +245,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   RecommendationsRoute: typeof RecommendationsRoute
   SellRoute: typeof SellRoute
+  SettingsRoute: typeof SettingsRoute
   SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
   BookIdRoute: typeof BookIdRoute
@@ -252,6 +265,13 @@ declare module '@tanstack/react-router' {
       path: '/support'
       fullPath: '/support'
       preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sell': {
@@ -369,6 +389,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   RecommendationsRoute: RecommendationsRoute,
   SellRoute: SellRoute,
+  SettingsRoute: SettingsRoute,
   SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,
   BookIdRoute: BookIdRoute,
