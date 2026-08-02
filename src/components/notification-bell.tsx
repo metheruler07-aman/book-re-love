@@ -40,7 +40,7 @@ export function NotificationBell() {
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button size="icon" variant="ghost" aria-label="Notifications" className="relative">
           <Bell className="h-4 w-4" />
