@@ -1,0 +1,1 @@
+GRANT UPDATE (blocked, strike_count) ON public.profiles TO authenticated;
