@@ -1051,7 +1051,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     notifications, platformSettings, loadPrivate, loadPublic,
   ]);
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return (
+    <LiveCtx.Provider value={registerLive}>
+      <Ctx.Provider value={value}>{children}</Ctx.Provider>
+    </LiveCtx.Provider>
+  );
+
 }
 
 export function useStore() {
