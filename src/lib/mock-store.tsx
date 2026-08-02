@@ -355,6 +355,9 @@ type Store = {
 
   activateListingChat: (bookId: string) => Promise<void>;
   markBookSold: (bookId: string, sold: boolean) => Promise<void>;
+  markNoteSold: (noteId: string, sold: boolean) => Promise<void>;
+  requestAccountDeletion: () => Promise<void>;
+
   setListingChatFee: (bookId: string, fee: number) => Promise<void>;
   updatePlatformSettings: (patch: Partial<PlatformSettings>) => Promise<void>;
 
