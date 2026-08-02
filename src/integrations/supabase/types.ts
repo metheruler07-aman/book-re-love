@@ -331,6 +331,7 @@ export type Database = {
           rejection_note: string | null
           removed: boolean
           seller_id: string
+          sold: boolean
           status: Database["public"]["Enums"]["listing_status"]
           title: string
         }
@@ -346,6 +347,7 @@ export type Database = {
           rejection_note?: string | null
           removed?: boolean
           seller_id: string
+          sold?: boolean
           status?: Database["public"]["Enums"]["listing_status"]
           title: string
         }
@@ -361,6 +363,7 @@ export type Database = {
           rejection_note?: string | null
           removed?: boolean
           seller_id?: string
+          sold?: boolean
           status?: Database["public"]["Enums"]["listing_status"]
           title?: string
         }
@@ -556,37 +559,52 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string
           area: string
           blocked: boolean
           created_at: string
+          deletion_requested: boolean
+          deletion_requested_at: string | null
           id: string
           is_admin: boolean
           name: string
+          notifications_enabled: boolean
           payment_methods: Json
+          phone: string
           radius_km: number
           ships_beyond_radius: boolean
           strike_count: number
         }
         Insert: {
+          address?: string
           area?: string
           blocked?: boolean
           created_at?: string
+          deletion_requested?: boolean
+          deletion_requested_at?: string | null
           id: string
           is_admin?: boolean
           name?: string
+          notifications_enabled?: boolean
           payment_methods?: Json
+          phone?: string
           radius_km?: number
           ships_beyond_radius?: boolean
           strike_count?: number
         }
         Update: {
+          address?: string
           area?: string
           blocked?: boolean
           created_at?: string
+          deletion_requested?: boolean
+          deletion_requested_at?: string | null
           id?: string
           is_admin?: boolean
           name?: string
+          notifications_enabled?: boolean
           payment_methods?: Json
+          phone?: string
           radius_km?: number
           ships_beyond_radius?: boolean
           strike_count?: number
