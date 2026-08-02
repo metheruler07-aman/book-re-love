@@ -1,10 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable";
-import { useTheme } from "@/lib/mock-store";
+import { useCurrentUser, useStore, useTheme } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -16,10 +18,39 @@ export const Route = createFileRoute("/auth")({
   component: Auth,
 });
 
+const nameKey = (id: string) => `bl-name-confirmed:${id}`;
+
 function Auth() {
   const { theme, toggle } = useTheme();
+  const { signedIn, updateUser } = useStore();
+  const me = useCurrentUser();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
+
+  /* First step after signing up: confirm the name we'll show to other readers. */
+  const [needsName, setNeedsName] = useState(false);
+  const [name, setName] = useState("");
+
+  useEffect(() => {
+    if (!signedIn || !me.id) { setNeedsName(false); return; }
+    const done = typeof window !== "undefined" && localStorage.getItem(nameKey(me.id));
+    if (done) { navigate({ to: "/" }); return; }
+    setName(me.name && me.name !== "Reader" ? me.name : "");
+    setNeedsName(true);
+  }, [signedIn, me.id, me.name, navigate]);
+
+  const saveName = async () => {
+    if (!name.trim()) { toast.error("Please enter your name"); return; }
+    setBusy(true);
+    try {
+      await updateUser(me.id, { name: name.trim() });
+      localStorage.setItem(nameKey(me.id), "1");
+      toast.success(`Welcome, ${name.trim()}`);
+      navigate({ to: "/" });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const signInGoogle = async () => {
     setBusy(true);
@@ -33,13 +64,13 @@ function Auth() {
       }
       if (res.redirected) return; // browser navigates away
       toast.success("Welcome");
-      navigate({ to: "/" });
     } catch (e) {
       toast.error("Sign-in failed", { description: e instanceof Error ? e.message : String(e) });
     } finally {
       setBusy(false);
     }
   };
+
 
   return (
     <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2">
