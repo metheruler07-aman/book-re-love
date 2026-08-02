@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { Bell, CheckCheck } from "lucide-react";
-import { useStore, type Notification } from "@/lib/mock-store";
+import { useCurrentUser, useLiveTables, useStore, type Notification } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,7 +12,16 @@ import { formatDistanceToNow } from "date-fns";
 
 export function NotificationBell() {
   const { notifications, unreadNotifications, markNotificationRead, markAllNotificationsRead } = useStore();
+  const me = useCurrentUser();
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const enabled = me.notificationsEnabled !== false;
+
+  // Stream notifications only while the panel is open; otherwise poll-free.
+  useLiveTables(enabled && open ? ["notifications"] : []);
+
+  if (!enabled) return null;
+
 
   const target = (n: Notification): { path: string; params?: Record<string, string> } => {
     if (n.relatedOrderId) return { path: "/orders" };
