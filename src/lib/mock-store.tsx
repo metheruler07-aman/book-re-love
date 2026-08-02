@@ -410,7 +410,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       supabase.from("recommendation_likes").select("*"),
       supabase.from("recommendation_interests").select("*"),
       supabase.from("commissions").select("*"),
-      supabase.from("profiles").select("*"),
+      supabase.from("public_profiles").select("*"),
       supabase.from("platform_settings").select("*").maybeSingle(),
     ]);
     setBooks((b.data ?? []).map((row) => toBook(row as unknown as BookRow)));
@@ -461,7 +461,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     ((myRoles ?? []) as { user_id: string; role: string }[]).forEach((r0) =>
       roleMap.set(r0.user_id, r0.role === "admin" ? "admin" : "user"),
     );
-    setUsers(((profs.data ?? []) as unknown as ProfileRow[]).map((p) => toUser(p, roleMap.get(p.id) ?? "user")));
+    // Privileged columns (blocked / strike_count / is_admin) are only readable for
+    // your own row, or for every row when you are an admin. Overlay them on top of
+    // the limited public profile cards.
+    const { data: privileged } = await supabase.from("profiles").select("*");
+    const privMap = new Map<string, { blocked?: boolean; is_admin?: boolean }>();
+    ((privileged ?? []) as unknown as ProfileRow[]).forEach((p) => privMap.set(p.id, p));
+    setUsers(((profs.data ?? []) as unknown as ProfileRow[]).map((p) =>
+      toUser({ ...p, ...(privMap.get(p.id) ?? {}) }, roleMap.get(p.id) ?? "user"),
+    ));
   }, []);
 
   const loadPrivate = useCallback(async (uid: string) => {

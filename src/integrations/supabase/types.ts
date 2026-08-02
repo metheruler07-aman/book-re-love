@@ -593,6 +593,44 @@ export type Database = {
         }
         Relationships: []
       }
+      public_profiles: {
+        Row: {
+          area: string
+          created_at: string
+          id: string
+          name: string
+          payment_methods: Json
+          radius_km: number
+          ships_beyond_radius: boolean
+        }
+        Insert: {
+          area: string
+          created_at?: string
+          id: string
+          name: string
+          payment_methods: Json
+          radius_km: number
+          ships_beyond_radius: boolean
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          id?: string
+          name?: string
+          payment_methods?: Json
+          radius_km?: number
+          ships_beyond_radius?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recommendation_interests: {
         Row: {
           recommendation_id: string
