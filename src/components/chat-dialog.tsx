@@ -23,6 +23,10 @@ export function ChatDialog({
   const book = bookId ? books.find((b) => b.id === bookId) : undefined;
   const [text, setText] = useState("");
 
+  // Live message updates only while this dialog is actually open.
+  useLiveTables(open ? ["messages"] : []);
+
+
   // ensure thread exists when opened
   useEffect(() => { if (open) getThread(otherId, bookId); }, [open, otherId, bookId, getThread]);
   const thread = threads.find((t) => t.participants.includes(me.id) && t.participants.includes(otherId));
