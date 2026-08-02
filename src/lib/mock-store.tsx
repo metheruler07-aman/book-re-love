@@ -717,15 +717,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
 
     updateUser: async (id, patch) => {
-      await supabase.from("profiles").update({
-        name: patch.name, area: patch.area, radius_km: patch.radiusKm,
-        ships_beyond_radius: patch.shipsBeyondRadius, payment_methods: patch.paymentMethods,
-      }).eq("id", id);
-      await refresh();
+      const row: Record<string, unknown> = {};
+      if (patch.name !== undefined) row.name = patch.name;
+      if (patch.area !== undefined) row.area = patch.area;
+      if (patch.radiusKm !== undefined) row.radius_km = patch.radiusKm;
+      if (patch.shipsBeyondRadius !== undefined) row.ships_beyond_radius = patch.shipsBeyondRadius;
+      if (patch.paymentMethods !== undefined) row.payment_methods = patch.paymentMethods;
+      if (patch.phone !== undefined) row.phone = patch.phone;
+      if (patch.address !== undefined) row.address = patch.address;
+      if (patch.notificationsEnabled !== undefined) row.notifications_enabled = patch.notificationsEnabled;
+      if (Object.keys(row).length === 0) return;
+      // Optimistic: reflect immediately, then persist.
+      setUsers((cur) => cur.map((u) => (u.id === id ? { ...u, ...patch } : u)));
+      await supabase.from("profiles").update(row).eq("id", id);
     },
     addBook: async (b) => {
       if (!currentUserId) return;
-      await supabase.from("books").insert({
+      // Insert and return the row straight away — the seller's listing must reach
+      // the admin queue without waiting on a full public/private reload.
+      const { data, error } = await supabase.from("books").insert({
         seller_id: currentUserId, title: b.title, author: b.author, cover: b.cover || "📖",
         photos: b.photos, price: b.price, rent_per_week: b.rentPerWeek ?? null,
         condition: b.condition, category: b.category, area: b.area,
@@ -734,9 +744,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         buyback_window_days: b.buybackWindowDays,
         delivery_deadline_days: b.deliveryDeadlineDays,
         chat_fee: b.chatFee || platformSettings.defaultChatFee,
-      });
-      await refresh();
+      }).select("*").single();
+      if (error) throw error;
+      if (data) setBooks((cur) => [toBook(data as unknown as BookRow), ...cur]);
     },
+
     updateBook: async (id, patch) => {
       await supabase.from("books").update({
         title: patch.title, author: patch.author, price: patch.price,
