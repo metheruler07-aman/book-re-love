@@ -44,7 +44,14 @@ export type User = {
   shipsBeyondRadius: boolean;
   paymentMethods: PaymentMethods;
   blocked?: boolean;
+  /** Private — only readable by the owner and admins. */
+  phone?: string;
+  /** Private — only readable by the owner and admins. */
+  address?: string;
+  notificationsEnabled?: boolean;
+  deletionRequested?: boolean;
 };
+
 
 export type Book = {
   id: string;
