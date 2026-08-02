@@ -281,14 +281,17 @@ type NoteRow = {
   id: string; seller_id: string; title: string; course: string; price: number;
   pages: number; is_digital: boolean; photos: string[]; status: ListingStatus;
   rejection_note: string | null; commission_override: number | null; removed: boolean;
+  sold?: boolean;
 };
 function toNote(n: NoteRow): Note {
   return {
     id: n.id, title: n.title, course: n.course, price: Number(n.price),
     sellerId: n.seller_id, pages: n.pages, isDigital: n.is_digital, photos: n.photos ?? [],
     status: n.status, rejectionNote: n.rejection_note ?? undefined, removed: n.removed || undefined,
+    sold: !!n.sold,
   };
 }
+
 
 /* Store type */
 type CreateOrderInput = {
