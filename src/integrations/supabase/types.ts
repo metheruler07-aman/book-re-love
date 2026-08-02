@@ -593,6 +593,44 @@ export type Database = {
         }
         Relationships: []
       }
+      public_profiles: {
+        Row: {
+          area: string
+          created_at: string
+          id: string
+          name: string
+          payment_methods: Json
+          radius_km: number
+          ships_beyond_radius: boolean
+        }
+        Insert: {
+          area: string
+          created_at?: string
+          id: string
+          name: string
+          payment_methods: Json
+          radius_km: number
+          ships_beyond_radius: boolean
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          id?: string
+          name?: string
+          payment_methods?: Json
+          radius_km?: number
+          ships_beyond_radius?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recommendation_interests: {
         Row: {
           recommendation_id: string
@@ -831,36 +869,6 @@ export type Database = {
           },
         ]
       }
-      profiles_public: {
-        Row: {
-          area: string | null
-          created_at: string | null
-          id: string | null
-          name: string | null
-          payment_methods: Json | null
-          radius_km: number | null
-          ships_beyond_radius: boolean | null
-        }
-        Insert: {
-          area?: string | null
-          created_at?: string | null
-          id?: string | null
-          name?: string | null
-          payment_methods?: Json | null
-          radius_km?: number | null
-          ships_beyond_radius?: boolean | null
-        }
-        Update: {
-          area?: string | null
-          created_at?: string | null
-          id?: string | null
-          name?: string | null
-          payment_methods?: Json | null
-          radius_km?: number | null
-          ships_beyond_radius?: boolean | null
-        }
-        Relationships: []
-      }
     }
     Functions: {
       has_role: {
@@ -871,15 +879,6 @@ export type Database = {
         Returns: boolean
       }
       is_blocked: { Args: { _user_id: string }; Returns: boolean }
-      profile_flags_unchanged: {
-        Args: {
-          _blocked: boolean
-          _id: string
-          _is_admin: boolean
-          _strike: number
-        }
-        Returns: boolean
-      }
     }
     Enums: {
       app_role: "buyer" | "seller" | "admin"
