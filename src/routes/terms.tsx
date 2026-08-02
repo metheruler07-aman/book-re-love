@@ -4,7 +4,7 @@ export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
       { title: "Terms of Service — Book Ledger" },
-      { name: "description", content: "The terms that govern your use of Book Ledger — buying, selling, renting, buybacks, notes, chat, and calls." },
+      { name: "description", content: "The terms that govern your use of Book Ledger — buying, selling, renting, buybacks, notes, and chat." },
       { property: "og:title", content: "Terms of Service — Book Ledger" },
       { property: "og:description", content: "The terms that govern your use of Book Ledger." },
       { property: "og:url", content: "/terms" },
