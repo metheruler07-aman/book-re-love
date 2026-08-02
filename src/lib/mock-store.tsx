@@ -410,7 +410,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       supabase.from("recommendation_likes").select("*"),
       supabase.from("recommendation_interests").select("*"),
       supabase.from("commissions").select("*"),
-      supabase.from("profiles").select("*"),
+      supabase.from("public_profiles").select("*"),
       supabase.from("platform_settings").select("*").maybeSingle(),
     ]);
     setBooks((b.data ?? []).map((row) => toBook(row as unknown as BookRow)));
