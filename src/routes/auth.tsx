@@ -93,23 +93,51 @@ function Auth() {
       <div className="flex flex-col justify-center">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h2 className="font-display text-3xl">Sign in</h2>
-            <p className="text-sm text-muted-foreground">One account — buy, sell, rent, all of it.</p>
+            <h2 className="font-display text-3xl">{needsName ? "One quick step" : "Sign in"}</h2>
+            <p className="text-sm text-muted-foreground">
+              {needsName
+                ? "What should other readers call you?"
+                : "One account — buy, sell, rent, all of it."}
+            </p>
           </div>
           <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
         </div>
 
-        <Button
-          size="lg"
-          variant="outline"
-          disabled={busy}
-          onClick={signInGoogle}
-          className="w-full justify-center gap-3 py-6 text-base"
-        >
-          <GoogleIcon /> Continue with Google
-        </Button>
+        {needsName ? (
+          <div className="grid gap-4">
+            <div className="grid gap-1.5">
+              <Label htmlFor="signup-name">Your name</Label>
+              <Input
+                id="signup-name"
+                value={name}
+                maxLength={80}
+                autoFocus
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") saveName(); }}
+                placeholder="e.g. Ananya Rao"
+              />
+              <p className="text-xs text-muted-foreground">
+                Shown on your listings. You can change it later in Settings.
+              </p>
+            </div>
+            <Button size="lg" disabled={busy} onClick={saveName} className="py-6 text-base">
+              {busy ? "Saving…" : "Finish setup"}
+            </Button>
+          </div>
+        ) : (
+          <Button
+            size="lg"
+            variant="outline"
+            disabled={busy}
+            onClick={signInGoogle}
+            className="w-full justify-center gap-3 py-6 text-base"
+          >
+            <GoogleIcon /> Continue with Google
+          </Button>
+        )}
+
 
         <p className="mt-8 text-xs text-muted-foreground">
           By continuing you agree to our{" "}
