@@ -421,6 +421,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings>({
     ownerUpiId: "", defaultChatFee: 49,
   });
+  /** Refcount of pages currently interested in realtime updates per table. */
+  const [liveScopes, setLiveScopes] = useState<Record<string, number>>({});
+  const registerLive = useCallback((tables: string[]) => {
+    setLiveScopes((cur) => {
+      const next = { ...cur };
+      for (const t of tables) next[t] = (next[t] ?? 0) + 1;
+      return next;
+    });
+    return () => setLiveScopes((cur) => {
+      const next = { ...cur };
+      for (const t of tables) next[t] = Math.max(0, (next[t] ?? 1) - 1);
+      return next;
+    });
+  }, []);
+
+
 
   /* ---------- Loaders ---------- */
   const loadPublic = useCallback(async () => {
