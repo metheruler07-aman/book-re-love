@@ -231,6 +231,8 @@ type ProfileRow = {
   id: string; name: string; area: string; radius_km: number;
   ships_beyond_radius: boolean; payment_methods: PaymentMethods; blocked: boolean;
   is_admin?: boolean;
+  phone?: string; address?: string;
+  notifications_enabled?: boolean; deletion_requested?: boolean;
 };
 function toUser(p: ProfileRow, role: Role): User {
   return {
@@ -239,8 +241,14 @@ function toUser(p: ProfileRow, role: Role): User {
     shipsBeyondRadius: !!p.ships_beyond_radius,
     paymentMethods: p.payment_methods ?? { upi: true, card: false, wallet: false, cod: true },
     blocked: !!p.blocked,
+    // These come only from the privileged `profiles` overlay (own row / admin).
+    phone: p.phone ?? undefined,
+    address: p.address ?? undefined,
+    notificationsEnabled: p.notifications_enabled ?? true,
+    deletionRequested: !!p.deletion_requested,
   };
 }
+
 
 type BookRow = {
   id: string; seller_id: string; title: string; author: string; cover: string;
