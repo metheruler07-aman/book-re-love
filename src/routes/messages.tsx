@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MessageCircle, ShieldCheck } from "lucide-react";
 import { useCurrentUser, useStore } from "@/lib/mock-store";
-import { ChatDialog } from "@/components/chat-call";
+import { ChatDialog } from "@/components/chat-dialog";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/messages")({
