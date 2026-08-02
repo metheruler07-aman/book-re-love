@@ -91,15 +91,30 @@ export function SiteHeader() {
           {signedIn && <NotificationBell />}
 
           {signedIn ? (
-            <>
-              <Link to="/my-space" className="hidden text-sm text-muted-foreground hover:text-foreground lg:inline">
-                {me.name}
-              </Link>
-              <Button size="icon" variant="ghost" onClick={async () => { await signOut(); navigate({ to: "/auth" }); }} aria-label="Sign out">
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2" aria-label="Account menu">
+                  <UserIcon className="h-4 w-4" />
+                  <span className="hidden max-w-[10ch] truncate lg:inline">{me.name}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="truncate">{me.name}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/my-space"><UserIcon className="mr-2 h-4 w-4" /> My Space</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings"><Settings className="mr-2 h-4 w-4" /> Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={async () => { await signOut(); navigate({ to: "/auth" }); }}>
+                  <LogOut className="mr-2 h-4 w-4" /> Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
+
             <Button size="sm" onClick={() => navigate({ to: "/auth" })}>
               <LogIn className="mr-2 h-4 w-4" /> Sign in
             </Button>
