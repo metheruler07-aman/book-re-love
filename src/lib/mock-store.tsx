@@ -379,6 +379,22 @@ type Store = {
 };
 
 const Ctx = createContext<Store | null>(null);
+const LiveCtx = createContext<((tables: string[]) => () => void) | null>(null);
+
+/**
+ * Opt a page into realtime updates for the given tables. The underlying
+ * Supabase channel exists only while a component using this hook is mounted,
+ * so chat/order/notification streams stop as soon as you leave the page.
+ */
+export function useLiveTables(tables: string[]) {
+  const register = useContext(LiveCtx);
+  const key = tables.join(",");
+  useEffect(() => {
+    if (!register || !key) return;
+    return register(key.split(","));
+  }, [register, key]);
+}
+
 const ANON: User = {
   id: "", name: "Guest", role: "user", area: "", radiusKm: 5, shipsBeyondRadius: false,
   paymentMethods: { upi: true, card: false, wallet: false, cod: true },
