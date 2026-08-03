@@ -143,8 +143,13 @@ function BookDetail() {
           </div>
 
           <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-            <Percent className="h-3 w-3" /> Platform fee: {commissionPct}% (₹{platformCut}) on sale
+            <Percent className="h-3 w-3" /> Platform fee: ₹{platformCut} on sale
           </div>
+
+          <div className="mt-4">
+            <ShareButton title={book.title} text={`${book.title} by ${book.author} on Book Ledger`} />
+          </div>
+
 
           {book.description && (
             <p className="mt-6 max-w-prose leading-relaxed text-muted-foreground">{book.description}</p>
