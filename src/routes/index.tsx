@@ -1,27 +1,47 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowRight, BookMarked, HandCoins, Repeat, ScrollText, Sparkles, Users, ShieldCheck, BadgeCheck, KeyRound, RefreshCw } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, Sparkles, Users, ShieldCheck, BadgeCheck, KeyRound, RefreshCw } from "lucide-react";
 import { useStore } from "@/lib/mock-store";
 import { supabase } from "@/integrations/supabase/client";
 import { BookCard } from "@/components/book-card";
 import { Button } from "@/components/ui/button";
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Book Ledger — A neighborhood book marketplace" },
       { name: "description", content: "Buy, sell, rent, and trade books with readers nearby. Sell your class notes. Request the titles you're hunting." },
+      { property: "og:title", content: "Book Ledger — A neighborhood book marketplace" },
+      { property: "og:description", content: "Buy, sell, rent, and trade books with readers nearby." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Home,
 });
 
+export const HOME_CATEGORIES = ["Examination", "Fiction", "Non-fiction", "NCERT", "Others"] as const;
+const KNOWN = new Set<string>(["Examination", "Fiction", "Non-fiction", "NCERT"]);
+
 function Home() {
   const { books, requests } = useStore();
-  const featured = books.filter((b) => !b.removed && b.status === "approved").slice(0, 6);
-  const topRequests = [...requests].sort((a, b) => b.upvotes.length - a.upvotes.length).slice(0, 3);
+  const [category, setCategory] = useState<string>("All");
   const liveCount = useLiveBookCount();
+
+  const latest = useMemo(() => {
+    const live = books.filter((b) => !b.removed && !b.sold && b.status === "approved");
+    const filtered =
+      category === "All"
+        ? live
+        : category === "Others"
+          ? live.filter((b) => !KNOWN.has(b.category))
+          : live.filter((b) => b.category === category);
+    return [...filtered].sort((a, b) => b.listedAt.localeCompare(a.listedAt)).slice(0, 10);
+  }, [books, category]);
+
+  const topRequests = [...requests].sort((a, b) => b.upvotes.length - a.upvotes.length).slice(0, 3);
+  const heroBooks = books.filter((b) => !b.removed && b.status === "approved").slice(0, 4);
 
   const trustBadges = [
     { icon: ShieldCheck, title: "Payment held safely", body: "Your money stays protected until you confirm you've received the book." },
@@ -29,7 +49,6 @@ function Home() {
     { icon: KeyRound, title: "Confirmed handoff", body: "A one-time code confirms the book actually changed hands." },
     { icon: RefreshCw, title: "Fair buyback", body: "Sell it back anytime for half the price, based on condition." },
   ];
-
 
   return (
     <div>
@@ -64,12 +83,11 @@ function Home() {
               </span>
               {liveCount === null ? "Loading listings…" : `${liveCount.toLocaleString()} book${liveCount === 1 ? "" : "s"} listed right now`}
             </div>
-
           </div>
 
           <div className="relative">
             <div className="grid grid-cols-2 gap-4">
-              {featured.slice(0, 4).map((b, i) => (
+              {heroBooks.map((b, i) => (
                 <div
                   key={b.id}
                   className="paper-grain relative aspect-[3/4] rounded-lg border border-border bg-secondary/70 p-6 text-5xl shadow-sm"
@@ -109,36 +127,40 @@ function Home() {
         </div>
       </section>
 
-      {/* Pillars */}
+      {/* Latest listings by category */}
       <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
-        <div className="grid gap-4 md:grid-cols-4">
-          {[
-            { icon: BookMarked, title: "Buy & Sell", body: "List with condition and a fair price. Nearby readers find you first." },
-            { icon: Repeat, title: "Rent by the week", body: "Textbooks and page-turners without the commitment." },
-            { icon: HandCoins, title: "Honest buyback", body: "We buy back any book purchased on Book Ledger — up to 50% of your original price. The exact amount depends on the book's condition." },
-            { icon: ScrollText, title: "Notes marketplace", body: "Students sell class notes to the next cohort." },
-          ].map((f) => (
-            <div key={f.title} className="rounded-lg border border-border bg-card p-6">
-              <f.icon className="h-6 w-6 text-accent" />
-              <div className="mt-4 font-display text-lg">{f.title}</div>
-              <p className="mt-1 text-sm text-muted-foreground">{f.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-
-      {/* Featured shelf */}
-      <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6">
-        <div className="mb-6 flex items-end justify-between">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="font-display text-3xl">On the shelves today</h2>
-            <p className="text-sm text-muted-foreground">Freshly listed by readers near you.</p>
+            <h2 className="font-display text-3xl">Freshly listed</h2>
+            <p className="text-sm text-muted-foreground">The 10 most recent listings{category !== "All" ? ` in ${category}` : ""}.</p>
           </div>
-          <Link to="/browse" className="text-sm font-medium text-accent hover:underline">See all →</Link>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="w-52"><SelectValue placeholder="Category" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All categories</SelectItem>
+              {HOME_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          {featured.map((b) => <BookCard key={b.id} book={b} />)}
+
+        {latest.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
+            Nothing listed in this category yet.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {latest.map((b) => <BookCard key={b.id} book={b} />)}
+          </div>
+        )}
+
+        <div className="mt-6">
+          <Link
+            to="/browse"
+            search={category === "All" ? {} : { category }}
+            className="text-sm font-medium text-accent hover:underline"
+          >
+            See more{category !== "All" ? ` in ${category}` : ""} →
+          </Link>
         </div>
       </section>
 
@@ -177,30 +199,22 @@ function Home() {
   );
 }
 
+/** One-shot count on mount — no standing realtime channel (saves mobile data). */
 function useLiveBookCount() {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    const fetchCount = async () => {
+    (async () => {
       const { count: c } = await supabase
         .from("books")
         .select("id", { count: "exact", head: true })
         .eq("status", "approved")
         .eq("removed", false);
       if (!cancelled) setCount(c ?? 0);
-    };
-    fetchCount();
-    const channel = supabase
-      .channel("home-books-count")
-      .on("postgres_changes", { event: "*", schema: "public", table: "books" }, fetchCount)
-      .subscribe();
-    return () => {
-      cancelled = true;
-      supabase.removeChannel(channel);
-    };
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   return count;
 }
-
