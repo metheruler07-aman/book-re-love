@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FileText, Plus, ShoppingBag, Download, Clock, ImagePlus, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { filesToDataUrls, useCurrentUser, useStore } from "@/lib/mock-store";
+import { ShareButton } from "@/components/share-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
