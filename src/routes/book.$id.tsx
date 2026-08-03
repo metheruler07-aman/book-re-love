@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ChatDialog } from "@/components/chat-dialog";
+import { ShareButton } from "@/components/share-button";
 
 export const Route = createFileRoute("/book/$id")({
   head: ({ params }) => ({
@@ -46,8 +47,9 @@ function BookDetail() {
   if (!book) throw notFound();
   const seller = users.find((u) => u.id === book.sellerId)!;
   const buyback = buybackPrice(book.originalPrice, book.condition);
-  const commissionPct = commissions.perListing[book.id] ?? commissions.sale;
-  const platformCut = Math.round((book.price * commissionPct) / 100);
+  // Admin sets an exact rupee commission per listing; category % is only a fallback.
+  const commissionOverride = commissions.perListing[book.id];
+  const platformCut = commissionOverride ?? Math.round((book.price * commissions.sale) / 100);
 
   const isOwner = me.id === book.sellerId;
   const isAdmin = me.role === "admin";
@@ -142,8 +144,13 @@ function BookDetail() {
           </div>
 
           <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-            <Percent className="h-3 w-3" /> Platform fee: {commissionPct}% (₹{platformCut}) on sale
+            <Percent className="h-3 w-3" /> Platform fee: ₹{platformCut} on sale
           </div>
+
+          <div className="mt-4">
+            <ShareButton title={book.title} text={`${book.title} by ${book.author} on Book Ledger`} />
+          </div>
+
 
           {book.description && (
             <p className="mt-6 max-w-prose leading-relaxed text-muted-foreground">{book.description}</p>

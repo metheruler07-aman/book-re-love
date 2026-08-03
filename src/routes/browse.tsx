@@ -10,6 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/browse")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    category: typeof search.category === "string" ? search.category : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Browse books — Book Ledger" },
@@ -19,18 +22,22 @@ export const Route = createFileRoute("/browse")({
   component: Browse,
 });
 
-const CATEGORIES = ["All", "Fiction", "Non-fiction", "Textbook", "Science", "Essays"];
+const CATEGORIES = ["All", "Examination", "Fiction", "Non-fiction", "NCERT", "Others"];
+const KNOWN = new Set(["Examination", "Fiction", "Non-fiction", "NCERT"]);
 const CONDITIONS = ["All", "New", "Like New", "Good", "Fair"] as const;
 
 const PAGE_SIZE = 20;
 
 function Browse() {
   const { books } = useStore();
+  const { category } = Route.useSearch();
   const [q, setQ] = useState("");
-  const [cat, setCat] = useState("All");
+  const [cat, setCat] = useState(category ?? "All");
   const [cond, setCond] = useState<(typeof CONDITIONS)[number]>("All");
   const [sort, setSort] = useState("newest");
   const [visible, setVisible] = useState(PAGE_SIZE);
+
+  useEffect(() => { if (category) setCat(category); }, [category]);
 
   const results = useMemo(() => {
     // Sold copies leave public browsing — they stay visible only in My Space.
@@ -39,7 +46,8 @@ function Browse() {
       const s = q.toLowerCase();
       list = list.filter((b) => b.title.toLowerCase().includes(s) || b.author.toLowerCase().includes(s));
     }
-    if (cat !== "All") list = list.filter((b) => b.category === cat);
+    if (cat === "Others") list = list.filter((b) => !KNOWN.has(b.category));
+    else if (cat !== "All") list = list.filter((b) => b.category === cat);
     if (cond !== "All") list = list.filter((b) => b.condition === cond);
     if (sort === "price-asc") list = [...list].sort((a, b) => a.price - b.price);
     if (sort === "price-desc") list = [...list].sort((a, b) => b.price - a.price);

@@ -80,7 +80,7 @@ function ApprovalsPanel() {
     <div className="space-y-10">
       <section>
         <h2 className="font-display text-2xl">Pending book listings</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Set the platform cut for each listing, then approve. Rejected listings stay hidden.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Type the exact ₹ commission for each listing, then approve. Rejected listings stay hidden.</p>
         <div className="mt-4 space-y-3">
           {pendingBooks.length === 0 && <EmptyRow label="No books waiting for approval." />}
           {pendingBooks.map((b) => (
@@ -88,8 +88,7 @@ function ApprovalsPanel() {
               key={b.id}
               book={b}
               sellerName={users.find((u) => u.id === b.sellerId)?.name ?? "Unknown"}
-              defaultCut={commissions.sale}
-              onApprove={(cut) => { approveBook(b.id, cut); toast.success(`Approved "${b.title}" at ${cut}%`); }}
+              onApprove={(cut) => { approveBook(b.id, cut); toast.success(`Approved "${b.title}" at ₹${cut}`); }}
               onReject={(note) => { rejectBook(b.id, note); toast(`Rejected "${b.title}"`); }}
             />
           ))}
@@ -105,8 +104,7 @@ function ApprovalsPanel() {
               key={n.id}
               note={n}
               sellerName={users.find((u) => u.id === n.sellerId)?.name ?? "Unknown"}
-              defaultCut={commissions.notes}
-              onApprove={(cut) => { approveNote(n.id, cut); toast.success(`Approved "${n.title}" at ${cut}%`); }}
+              onApprove={(cut) => { approveNote(n.id, cut); toast.success(`Approved "${n.title}" at ₹${cut}`); }}
               onReject={(note) => { rejectNote(n.id, note); toast(`Rejected "${n.title}"`); }}
             />
           ))}
@@ -120,18 +118,17 @@ function EmptyRow({ label }: { label: string }) {
   return <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{label}</div>;
 }
 
-function PendingBookRow({ book, sellerName, defaultCut, onApprove, onReject }: {
+function PendingBookRow({ book, sellerName, onApprove, onReject }: {
   book: { id: string; title: string; author: string; cover: string; price: number; condition: string; description?: string };
   sellerName: string;
-  defaultCut: number;
   onApprove: (cut: number) => void;
   onReject: (note?: string) => void;
 }) {
-  const [cut, setCut] = useState<string>(String(defaultCut));
+  const [cut, setCut] = useState<string>("");
   const [rejectNote, setRejectNote] = useState("");
   const [showReject, setShowReject] = useState(false);
   const cutNum = Number(cut);
-  const valid = !Number.isNaN(cutNum) && cutNum >= 0 && cutNum <= 100;
+  const valid = cut !== "" && !Number.isNaN(cutNum) && cutNum >= 0 && cutNum <= book.price;
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -145,10 +142,10 @@ function PendingBookRow({ book, sellerName, defaultCut, onApprove, onReject }: {
       </div>
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <div className="grid gap-1.5">
-          <Label className="text-xs">Your cut on this listing</Label>
-          <div className="relative w-32">
-            <Input type="number" min={0} max={100} value={cut} onChange={(e) => setCut(e.target.value)} className="pr-7" />
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+          <Label className="text-xs">Commission amount (₹)</Label>
+          <div className="relative w-36">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₹</span>
+            <Input type="number" min={0} max={book.price} placeholder="0" value={cut} onChange={(e) => setCut(e.target.value)} className="pl-7" />
           </div>
         </div>
         <Button
@@ -174,16 +171,15 @@ function PendingBookRow({ book, sellerName, defaultCut, onApprove, onReject }: {
   );
 }
 
-function PendingNoteRow({ note, sellerName, defaultCut, onApprove, onReject }: {
+function PendingNoteRow({ note, sellerName, onApprove, onReject }: {
   note: { id: string; title: string; course: string; price: number; pages: number; isDigital: boolean };
   sellerName: string;
-  defaultCut: number;
   onApprove: (cut: number) => void;
   onReject: (note?: string) => void;
 }) {
-  const [cut, setCut] = useState<string>(String(defaultCut));
+  const [cut, setCut] = useState<string>("");
   const cutNum = Number(cut);
-  const valid = !Number.isNaN(cutNum) && cutNum >= 0 && cutNum <= 100;
+  const valid = cut !== "" && !Number.isNaN(cutNum) && cutNum >= 0 && cutNum <= note.price;
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -193,9 +189,9 @@ function PendingNoteRow({ note, sellerName, defaultCut, onApprove, onReject }: {
           <div className="text-xs text-muted-foreground">{note.course} · {note.pages} pages · {note.isDigital ? "Online PDF" : "Printed"} · seller {sellerName} · ₹{note.price}</div>
         </div>
         <div className="flex flex-wrap items-end gap-2">
-          <div className="relative w-28">
-            <Input type="number" min={0} max={100} value={cut} onChange={(e) => setCut(e.target.value)} className="pr-7" />
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+          <div className="relative w-32">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₹</span>
+            <Input type="number" min={0} max={note.price} placeholder="0" value={cut} onChange={(e) => setCut(e.target.value)} className="pl-7" />
           </div>
           <Button disabled={!valid} size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => onApprove(cutNum)}>
             <Check className="mr-2 h-3 w-3" /> Approve
@@ -247,8 +243,8 @@ function CommissionsPanel() {
       </div>
 
       <div className="rounded-lg border border-border bg-card p-6">
-        <h2 className="font-display text-xl">Per-listing overrides</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Fix a specific book's cut. Blank = use category default.</p>
+        <h2 className="font-display text-xl">Per-listing commission (₹)</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Exact rupee cut for a specific book. Blank = use the category default.</p>
         <div className="mt-4 max-h-[420px] space-y-2 overflow-y-auto pr-1">
           {approved.map((b) => {
             const val = commissions.perListing[b.id];
@@ -256,11 +252,14 @@ function CommissionsPanel() {
               <div key={b.id} className="flex items-center gap-3 rounded-md border border-border bg-background/40 px-3 py-2">
                 <span className="text-lg">{b.cover}</span>
                 <div className="flex-1 truncate text-sm">{b.title}</div>
-                <Input
-                  type="number" placeholder={`${commissions.sale}%`} className="w-24"
-                  value={val ?? ""} min={0} max={100}
-                  onChange={(e) => setListingCommission(b.id, e.target.value === "" ? null : Number(e.target.value))}
-                />
+                <div className="relative w-28">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₹</span>
+                  <Input
+                    type="number" placeholder="—" className="w-28 pl-7"
+                    value={val ?? ""} min={0}
+                    onChange={(e) => setListingCommission(b.id, e.target.value === "" ? null : Number(e.target.value))}
+                  />
+                </div>
               </div>
             );
           })}

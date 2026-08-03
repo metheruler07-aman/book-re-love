@@ -24,7 +24,7 @@ export const Route = createFileRoute("/sell")({
 });
 
 const CONDITIONS: Condition[] = ["New", "Like New", "Good", "Fair"];
-const CATS = ["Fiction", "Non-fiction", "Textbook", "Science", "Essays"];
+const CATS = ["Examination", "Fiction", "Non-fiction", "NCERT", "Others"];
 const COVERS = ["📖", "📕", "📗", "📘", "📙", "📚", "🕮", "🌾", "🌲", "♾️"];
 
 function Sell() {
@@ -105,7 +105,7 @@ function Sell() {
                     {[b.deliveryOptions.selfDeliver && "Self", b.deliveryOptions.courier && "Courier"].filter(Boolean).join(" · ") || "—"}
                   </TableCell>
                   <TableCell className="text-xs">
-                    {b.status === "approved" ? `${cut ?? commissions.sale}%` : <span className="text-muted-foreground">—</span>}
+                    {b.status === "approved" ? `₹${cut ?? Math.round((b.price * commissions.sale) / 100)}` : <span className="text-muted-foreground">—</span>}
                   </TableCell>
                   <TableCell className="text-muted-foreground">₹{buybackPrice(b.originalPrice, b.condition)}</TableCell>
                   <TableCell className="text-right">

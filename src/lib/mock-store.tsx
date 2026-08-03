@@ -1099,12 +1099,44 @@ export function useTheme() {
 }
 
 /* ---------- File → data URLs (existing pages rely on this) ---------- */
-export function filesToDataUrls(files: FileList | File[]): Promise<string[]> {
-  const arr = Array.from(files);
-  return Promise.all(arr.map((f) => new Promise<string>((resolve, reject) => {
+const MAX_IMAGE_EDGE = 1280;
+const IMAGE_QUALITY = 0.72;
+
+function readAsDataUrl(f: File): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(String(r.result));
     r.onerror = () => reject(r.error);
     r.readAsDataURL(f);
-  })));
+  });
+}
+
+/** Downscale to <=1280px on the long edge and re-encode as JPEG to keep payloads (and mobile data) small. */
+export async function compressImageFile(f: File): Promise<string> {
+  const original = await readAsDataUrl(f);
+  if (typeof document === "undefined" || !f.type.startsWith("image/")) return original;
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = original;
+    });
+    const scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return original;
+    ctx.drawImage(img, 0, 0, w, h);
+    const out = canvas.toDataURL("image/jpeg", IMAGE_QUALITY);
+    return out.length < original.length ? out : original;
+  } catch {
+    return original;
+  }
+}
+
+export function filesToDataUrls(files: FileList | File[]): Promise<string[]> {
+  return Promise.all(Array.from(files).map(compressImageFile));
 }
