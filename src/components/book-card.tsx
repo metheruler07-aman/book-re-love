@@ -20,7 +20,7 @@ export function BookCard({ book }: { book: Book }) {
     >
       <div className="paper-grain relative flex aspect-[3/4] items-center justify-center overflow-hidden bg-secondary/60 text-6xl">
         {hero
-          ? <img src={hero} alt={book.title} className="h-full w-full object-cover" />
+          ? <img src={hero} alt={book.title} loading="lazy" decoding="async" className="h-full w-full object-cover" />
           : <span className="drop-shadow-sm">{book.cover}</span>}
         <Badge className={`absolute right-2 top-2 border ${conditionTone[book.condition]}`} variant="outline">
           {book.condition}
