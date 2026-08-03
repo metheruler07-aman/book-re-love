@@ -46,8 +46,9 @@ function BookDetail() {
   if (!book) throw notFound();
   const seller = users.find((u) => u.id === book.sellerId)!;
   const buyback = buybackPrice(book.originalPrice, book.condition);
-  const commissionPct = commissions.perListing[book.id] ?? commissions.sale;
-  const platformCut = Math.round((book.price * commissionPct) / 100);
+  // Admin sets an exact rupee commission per listing; category % is only a fallback.
+  const commissionOverride = commissions.perListing[book.id];
+  const platformCut = commissionOverride ?? Math.round((book.price * commissions.sale) / 100);
 
   const isOwner = me.id === book.sellerId;
   const isAdmin = me.role === "admin";
