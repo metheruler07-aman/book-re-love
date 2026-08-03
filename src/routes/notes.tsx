@@ -22,17 +22,23 @@ export const Route = createFileRoute("/notes")({
   component: NotesPage,
 });
 
+const PAGE_SIZE = 12;
+
 function NotesPage() {
   const { notes, users } = useStore();
   const me = useCurrentUser();
   const [tab, setTab] = useState<"all" | "online" | "printed">("all");
+  const [visible, setVisible] = useState(PAGE_SIZE);
 
   const live = useMemo(() => {
-    const l = notes.filter((n) => !n.removed && n.status === "approved");
+    const l = notes.filter((n) => !n.removed && !n.sold && n.status === "approved");
     if (tab === "online") return l.filter((n) => n.isDigital);
     if (tab === "printed") return l.filter((n) => !n.isDigital);
     return l;
   }, [notes, tab]);
+
+  useEffect(() => { setVisible(PAGE_SIZE); }, [tab]);
+  const shown = live.slice(0, visible);
 
   const myPending = notes.filter((n) => n.sellerId === me.id && n.status !== "approved" && !n.removed);
 
