@@ -70,12 +70,12 @@ function NotesPage() {
       </Tabs>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {live.map((n) => {
+        {shown.map((n) => {
           const seller = users.find((u) => u.id === n.sellerId);
           return (
             <div key={n.id} className="flex flex-col rounded-lg border border-border bg-card p-5 transition hover:border-primary/40">
               {n.photos[0] && (
-                <img src={n.photos[0]} alt="" className="mb-3 aspect-video w-full rounded object-cover" />
+                <img src={n.photos[0]} alt="" loading="lazy" decoding="async" className="mb-3 aspect-video w-full rounded object-cover" />
               )}
               <div className="flex items-start justify-between gap-2">
                 <Badge variant="outline">{n.course}</Badge>
@@ -85,17 +85,28 @@ function NotesPage() {
               </div>
               <div className="mt-4 font-display text-lg leading-tight">{n.title}</div>
               <div className="mt-1 text-xs text-muted-foreground">by {seller?.name ?? "Anonymous"} · {n.pages} pages</div>
-              <div className="mt-auto flex items-end justify-between pt-6">
+              <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-6">
                 <div className="font-display text-2xl font-semibold">₹{n.price}</div>
-                <Button size="sm" onClick={() => toast.success(n.isDigital ? "Downloading…" : "Purchased", { description: n.title })}>
-                  {n.isDigital ? <Download className="mr-2 h-3 w-3" /> : <ShoppingBag className="mr-2 h-3 w-3" />}
-                  {n.isDigital ? "Buy & download" : "Buy"}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <ShareButton title={n.title} text={`${n.title} — ${n.course} notes on Book Ledger`} url="/notes" variant="outline" />
+                  <Button size="sm" onClick={() => toast.success(n.isDigital ? "Downloading…" : "Purchased", { description: n.title })}>
+                    {n.isDigital ? <Download className="mr-2 h-3 w-3" /> : <ShoppingBag className="mr-2 h-3 w-3" />}
+                    {n.isDigital ? "Buy & download" : "Buy"}
+                  </Button>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
+
+      {visible < live.length && (
+        <div className="mt-8 flex justify-center">
+          <Button variant="outline" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
+            Load more ({live.length - visible} left)
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
