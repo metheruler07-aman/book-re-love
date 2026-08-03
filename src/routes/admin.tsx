@@ -243,8 +243,8 @@ function CommissionsPanel() {
       </div>
 
       <div className="rounded-lg border border-border bg-card p-6">
-        <h2 className="font-display text-xl">Per-listing overrides</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Fix a specific book's cut. Blank = use category default.</p>
+        <h2 className="font-display text-xl">Per-listing commission (₹)</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Exact rupee cut for a specific book. Blank = use the category default.</p>
         <div className="mt-4 max-h-[420px] space-y-2 overflow-y-auto pr-1">
           {approved.map((b) => {
             const val = commissions.perListing[b.id];
@@ -252,11 +252,14 @@ function CommissionsPanel() {
               <div key={b.id} className="flex items-center gap-3 rounded-md border border-border bg-background/40 px-3 py-2">
                 <span className="text-lg">{b.cover}</span>
                 <div className="flex-1 truncate text-sm">{b.title}</div>
-                <Input
-                  type="number" placeholder={`${commissions.sale}%`} className="w-24"
-                  value={val ?? ""} min={0} max={100}
-                  onChange={(e) => setListingCommission(b.id, e.target.value === "" ? null : Number(e.target.value))}
-                />
+                <div className="relative w-28">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₹</span>
+                  <Input
+                    type="number" placeholder="—" className="w-28 pl-7"
+                    value={val ?? ""} min={0}
+                    onChange={(e) => setListingCommission(b.id, e.target.value === "" ? null : Number(e.target.value))}
+                  />
+                </div>
               </div>
             );
           })}
