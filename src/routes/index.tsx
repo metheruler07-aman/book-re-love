@@ -217,12 +217,4 @@ function useLiveBookCount() {
   }, []);
 
   return count;
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then(() => console.log('Service worker registered'))
-        .catch((err) => console.log('Service worker registration failed', err));
-    });
-
-</script>}
+}
