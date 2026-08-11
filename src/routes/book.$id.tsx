@@ -72,7 +72,22 @@ function BookDetail() {
     .filter((k) => seller.paymentMethods[k])
     .map((k) => ({ key: k, ...PAY_META[k] }));
 
-  const hero = book.photos[heroIdx] ?? book.photos[0];
+  // Full-size photos live outside the browse payload; fetch them for this listing only.
+  const [photos, setPhotos] = useState<string[]>(book.photos);
+  useEffect(() => {
+    let alive = true;
+    if (book.photos.length) { setPhotos(book.photos); return; }
+    loadListingPhotos("book", book.id).then((p) => {
+      if (!alive) return;
+      setPhotos(p);
+      // Older listings predate thumbnails — generate one once so browse stays cheap.
+      if (!book.thumbUrl && p[0] && isOwner) {
+        makeThumb(p[0]).then((t) => { if (t) void updateBookThumb(book.id, t); });
+      }
+    });
+    return () => { alive = false; };
+  }, [book.id, book.photos, book.thumbUrl, isOwner]);
+  const hero = photos[heroIdx] ?? photos[0] ?? book.thumbUrl;
 
   if (!isVisible) {
     return (
