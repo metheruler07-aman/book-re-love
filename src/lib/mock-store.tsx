@@ -92,6 +92,7 @@ export type Note = {
   pages: number;
   isDigital: boolean;
   photos: string[];
+  thumbUrl?: string;
   removed?: boolean;
   status: ListingStatus;
   rejectionNote?: string;
