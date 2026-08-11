@@ -58,7 +58,10 @@ export type Book = {
   title: string;
   author: string;
   cover: string;
+  /** Full-size photos. Only loaded on the listing detail page (see loadListingPhotos). */
   photos: string[];
+  /** Tiny preview used by cards/lists so browsing costs a few KB, not megabytes. */
+  thumbUrl?: string;
   price: number;
   rentPerWeek?: number;
   condition: Condition;
