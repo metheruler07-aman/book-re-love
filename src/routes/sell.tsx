@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, Clock, CheckCircle2, XCircle, ShieldCheck, ImagePlus, Handshake } from "lucide-react";
 import { toast } from "sonner";
-import { buybackPrice, filesToDataUrls, useCurrentUser, useStore, type Condition, type DeliveryOptions } from "@/lib/mock-store";
+import { buybackPrice, filesToDataUrls, loadListingPhotos, useCurrentUser, useStore, type Condition, type DeliveryOptions } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
