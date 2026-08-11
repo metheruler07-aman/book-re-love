@@ -256,7 +256,7 @@ function toUser(p: ProfileRow, role: Role): User {
 
 type BookRow = {
   id: string; seller_id: string; title: string; author: string; cover: string;
-  photos: string[]; price: number; rent_per_week: number | null; condition: Condition;
+  photos?: string[]; thumb_url?: string | null; price: number; rent_per_week: number | null; condition: Condition;
   category: string; area: string; original_price: number; description: string | null;
   status: ListingStatus; rejection_note: string | null; commission_override: number | null;
   self_deliver: boolean; courier: boolean; removed: boolean; listed_at: string;
@@ -264,9 +264,23 @@ type BookRow = {
   chat_activated?: boolean; chat_fee?: number; chat_paid_at?: string | null;
   delivery_deadline_days?: number; sold?: boolean;
 };
+
+/**
+ * Browsing lists never select `photos` — those columns hold full-size images and
+ * pulling them for every listing was costing megabytes of mobile data per page load.
+ * Lists use `thumb_url` (a few KB); full photos load on demand for one listing.
+ */
+const BOOK_LIST_COLS =
+  "id,seller_id,title,author,cover,thumb_url,price,rent_per_week,condition,category,area," +
+  "original_price,description,status,rejection_note,commission_override,self_deliver,courier," +
+  "removed,listed_at,buyback_window_days,chat_activated,chat_fee,chat_paid_at,delivery_deadline_days,sold";
+const NOTE_LIST_COLS =
+  "id,seller_id,title,course,price,pages,is_digital,thumb_url,status,rejection_note,commission_override,removed,sold";
+
 function toBook(b: BookRow): Book {
   return {
     id: b.id, title: b.title, author: b.author, cover: b.cover, photos: b.photos ?? [],
+    thumbUrl: b.thumb_url ?? undefined,
     price: Number(b.price), rentPerWeek: b.rent_per_week ? Number(b.rent_per_week) : undefined,
     condition: b.condition, category: b.category, sellerId: b.seller_id, area: b.area,
     listedAt: (b.listed_at || "").slice(0, 10), originalPrice: Number(b.original_price),
@@ -283,7 +297,7 @@ function toBook(b: BookRow): Book {
 }
 type NoteRow = {
   id: string; seller_id: string; title: string; course: string; price: number;
-  pages: number; is_digital: boolean; photos: string[]; status: ListingStatus;
+  pages: number; is_digital: boolean; photos?: string[]; thumb_url?: string | null; status: ListingStatus;
   rejection_note: string | null; commission_override: number | null; removed: boolean;
   sold?: boolean;
 };
@@ -291,9 +305,17 @@ function toNote(n: NoteRow): Note {
   return {
     id: n.id, title: n.title, course: n.course, price: Number(n.price),
     sellerId: n.seller_id, pages: n.pages, isDigital: n.is_digital, photos: n.photos ?? [],
+    thumbUrl: n.thumb_url ?? undefined,
     status: n.status, rejectionNote: n.rejection_note ?? undefined, removed: n.removed || undefined,
     sold: !!n.sold,
   };
+}
+
+/** Fetch the full-size photos for a single listing (detail pages only). */
+export async function loadListingPhotos(kind: "book" | "note", id: string): Promise<string[]> {
+  const { data } = await supabase.from(kind === "book" ? "books" : "notes")
+    .select("photos").eq("id", id).maybeSingle();
+  return ((data as { photos?: string[] } | null)?.photos ?? []) as string[];
 }
 
 
