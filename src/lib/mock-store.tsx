@@ -311,6 +311,11 @@ function toNote(n: NoteRow): Note {
   };
 }
 
+/** Backfill a thumbnail on a legacy listing that was created before thumbnails existed. */
+export async function updateBookThumb(id: string, thumb: string) {
+  await supabase.from("books").update({ thumb_url: thumb }).eq("id", id);
+}
+
 /** Fetch the full-size photos for a single listing (detail pages only). */
 export async function loadListingPhotos(kind: "book" | "note", id: string): Promise<string[]> {
   const { data } = await supabase.from(kind === "book" ? "books" : "notes")
