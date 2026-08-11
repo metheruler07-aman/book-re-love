@@ -76,8 +76,8 @@ function OrderCard({ order, viewer }: { order: Order; viewer: "buyer" | "seller"
     <div className="rounded-lg border border-border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          {book.photos[0]
-            ? <img src={book.photos[0]} alt="" className="h-16 w-16 rounded object-cover" />
+          {(book.thumbUrl ?? book.photos[0])
+            ? <img src={(book.thumbUrl ?? book.photos[0])} alt="" className="h-16 w-16 rounded object-cover" />
             : <div className="grid h-16 w-16 place-items-center rounded bg-secondary text-3xl">{book.cover}</div>}
           <div>
             <div className="font-display text-lg leading-tight">{book.title}</div>

@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, Clock, CheckCircle2, XCircle, ShieldCheck, ImagePlus, Handshake } from "lucide-react";
 import { toast } from "sonner";
-import { buybackPrice, filesToDataUrls, useCurrentUser, useStore, type Condition, type DeliveryOptions } from "@/lib/mock-store";
+import { buybackPrice, filesToDataUrls, loadListingPhotos, useCurrentUser, useStore, type Condition, type DeliveryOptions } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,8 +88,8 @@ function Sell() {
                 <TableRow key={b.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      {b.photos[0]
-                        ? <img src={b.photos[0]} alt="" className="h-10 w-10 rounded object-cover" />
+                      {(b.thumbUrl ?? b.photos[0])
+                        ? <img src={(b.thumbUrl ?? b.photos[0])} alt="" className="h-10 w-10 rounded object-cover" />
                         : <span className="text-2xl">{b.cover}</span>}
                       <div>
                         <div className="font-medium">{b.title}</div>
@@ -386,7 +386,21 @@ function EditListingDialog({ id }: { id: string }) {
   const [rent, setRent] = useState(b.rentPerWeek ? String(b.rentPerWeek) : "");
   const [cond, setCond] = useState<Condition>(b.condition);
   const [photos, setPhotos] = useState<string[]>(b.photos);
+  const [photosLoading, setPhotosLoading] = useState(false);
   const [delivery, setDelivery] = useState<DeliveryOptions>(b.deliveryOptions);
+
+  // Photos are not part of the lightweight listing payload — pull them when editing.
+  useEffect(() => {
+    if (!open || photos.length) return;
+    let alive = true;
+    setPhotosLoading(true);
+    loadListingPhotos("book", id).then((p) => {
+      if (!alive) return;
+      setPhotos(p);
+      setPhotosLoading(false);
+    });
+    return () => { alive = false; };
+  }, [open, id, photos.length]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -404,7 +418,7 @@ function EditListingDialog({ id }: { id: string }) {
               <SelectContent>{CONDITIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
-          <Field label="Photos"><PhotoInput photos={photos} onChange={setPhotos} /></Field>
+          <Field label="Photos">{photosLoading ? <p className="text-xs text-muted-foreground">Loading photos…</p> : <PhotoInput photos={photos} onChange={setPhotos} />}</Field>
           <Field label="Delivery options"><DeliveryPicker value={delivery} onChange={setDelivery} /></Field>
         </div>
         <DialogFooter>

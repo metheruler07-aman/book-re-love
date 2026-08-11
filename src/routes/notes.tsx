@@ -81,8 +81,8 @@ function NotesPage() {
           const seller = users.find((u) => u.id === n.sellerId);
           return (
             <div key={n.id} className="flex flex-col rounded-lg border border-border bg-card p-5 transition hover:border-primary/40">
-              {n.photos[0] && (
-                <img src={n.photos[0]} alt="" loading="lazy" decoding="async" className="mb-3 aspect-video w-full rounded object-cover" />
+              {(n.thumbUrl ?? n.photos[0]) && (
+                <img src={n.thumbUrl ?? n.photos[0]} alt="" loading="lazy" decoding="async" className="mb-3 aspect-video w-full rounded object-cover" />
               )}
               <div className="flex items-start justify-between gap-2">
                 <Badge variant="outline">{n.course}</Badge>

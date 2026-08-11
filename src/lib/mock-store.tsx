@@ -58,7 +58,10 @@ export type Book = {
   title: string;
   author: string;
   cover: string;
+  /** Full-size photos. Only loaded on the listing detail page (see loadListingPhotos). */
   photos: string[];
+  /** Tiny preview used by cards/lists so browsing costs a few KB, not megabytes. */
+  thumbUrl?: string;
   price: number;
   rentPerWeek?: number;
   condition: Condition;
@@ -89,6 +92,7 @@ export type Note = {
   pages: number;
   isDigital: boolean;
   photos: string[];
+  thumbUrl?: string;
   removed?: boolean;
   status: ListingStatus;
   rejectionNote?: string;
@@ -252,7 +256,7 @@ function toUser(p: ProfileRow, role: Role): User {
 
 type BookRow = {
   id: string; seller_id: string; title: string; author: string; cover: string;
-  photos: string[]; price: number; rent_per_week: number | null; condition: Condition;
+  photos?: string[]; thumb_url?: string | null; price: number; rent_per_week: number | null; condition: Condition;
   category: string; area: string; original_price: number; description: string | null;
   status: ListingStatus; rejection_note: string | null; commission_override: number | null;
   self_deliver: boolean; courier: boolean; removed: boolean; listed_at: string;
@@ -260,9 +264,23 @@ type BookRow = {
   chat_activated?: boolean; chat_fee?: number; chat_paid_at?: string | null;
   delivery_deadline_days?: number; sold?: boolean;
 };
+
+/**
+ * Browsing lists never select `photos` — those columns hold full-size images and
+ * pulling them for every listing was costing megabytes of mobile data per page load.
+ * Lists use `thumb_url` (a few KB); full photos load on demand for one listing.
+ */
+const BOOK_LIST_COLS =
+  "id,seller_id,title,author,cover,thumb_url,price,rent_per_week,condition,category,area," +
+  "original_price,description,status,rejection_note,commission_override,self_deliver,courier," +
+  "removed,listed_at,buyback_window_days,chat_activated,chat_fee,chat_paid_at,delivery_deadline_days,sold";
+const NOTE_LIST_COLS =
+  "id,seller_id,title,course,price,pages,is_digital,thumb_url,status,rejection_note,commission_override,removed,sold";
+
 function toBook(b: BookRow): Book {
   return {
     id: b.id, title: b.title, author: b.author, cover: b.cover, photos: b.photos ?? [],
+    thumbUrl: b.thumb_url ?? undefined,
     price: Number(b.price), rentPerWeek: b.rent_per_week ? Number(b.rent_per_week) : undefined,
     condition: b.condition, category: b.category, sellerId: b.seller_id, area: b.area,
     listedAt: (b.listed_at || "").slice(0, 10), originalPrice: Number(b.original_price),
@@ -279,7 +297,7 @@ function toBook(b: BookRow): Book {
 }
 type NoteRow = {
   id: string; seller_id: string; title: string; course: string; price: number;
-  pages: number; is_digital: boolean; photos: string[]; status: ListingStatus;
+  pages: number; is_digital: boolean; photos?: string[]; thumb_url?: string | null; status: ListingStatus;
   rejection_note: string | null; commission_override: number | null; removed: boolean;
   sold?: boolean;
 };
@@ -287,9 +305,22 @@ function toNote(n: NoteRow): Note {
   return {
     id: n.id, title: n.title, course: n.course, price: Number(n.price),
     sellerId: n.seller_id, pages: n.pages, isDigital: n.is_digital, photos: n.photos ?? [],
+    thumbUrl: n.thumb_url ?? undefined,
     status: n.status, rejectionNote: n.rejection_note ?? undefined, removed: n.removed || undefined,
     sold: !!n.sold,
   };
+}
+
+/** Backfill a thumbnail on a legacy listing that was created before thumbnails existed. */
+export async function updateBookThumb(id: string, thumb: string) {
+  await supabase.from("books").update({ thumb_url: thumb }).eq("id", id);
+}
+
+/** Fetch the full-size photos for a single listing (detail pages only). */
+export async function loadListingPhotos(kind: "book" | "note", id: string): Promise<string[]> {
+  const { data } = await supabase.from(kind === "book" ? "books" : "notes")
+    .select("photos").eq("id", id).maybeSingle();
+  return ((data as { photos?: string[] } | null)?.photos ?? []) as string[];
 }
 
 
@@ -457,8 +488,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   /* ---------- Loaders ---------- */
   const loadPublic = useCallback(async () => {
   const [b, n, cReq, cUp, r, rl, ri, com, profs, ps] = await Promise.all([
-      supabase.from("books").select("*").order("listed_at", { ascending: false }),
-      supabase.from("notes").select("*").order("created_at", { ascending: false }),
+      supabase.from("books").select(BOOK_LIST_COLS).order("listed_at", { ascending: false }),
+      supabase.from("notes").select(NOTE_LIST_COLS).order("created_at", { ascending: false }),
       supabase.from("community_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("community_upvotes").select("*"),
       supabase.from("recommendations").select("*").order("created_at", { ascending: false }),
@@ -788,14 +819,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // the admin queue without waiting on a full public/private reload.
       const { data, error } = await supabase.from("books").insert({
         seller_id: currentUserId, title: b.title, author: b.author, cover: b.cover || "📖",
-        photos: b.photos, price: b.price, rent_per_week: b.rentPerWeek ?? null,
+        photos: b.photos, thumb_url: await makeThumb(b.photos?.[0]),
+        price: b.price, rent_per_week: b.rentPerWeek ?? null,
         condition: b.condition, category: b.category, area: b.area,
         original_price: b.originalPrice, description: b.description ?? null,
         self_deliver: b.deliveryOptions.selfDeliver, courier: b.deliveryOptions.courier,
         buyback_window_days: b.buybackWindowDays,
         delivery_deadline_days: b.deliveryDeadlineDays,
         chat_fee: b.chatFee || platformSettings.defaultChatFee,
-      }).select("*").single();
+      }).select(BOOK_LIST_COLS).single();
       if (error) throw error;
       if (data) setBooks((cur) => [toBook(data as unknown as BookRow), ...cur]);
     },
@@ -805,7 +837,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         title: patch.title, author: patch.author, price: patch.price,
         rent_per_week: patch.rentPerWeek ?? null, condition: patch.condition,
         category: patch.category, area: patch.area, description: patch.description,
-        photos: patch.photos, cover: patch.cover,
+        cover: patch.cover,
+        ...(patch.photos ? { photos: patch.photos, thumb_url: await makeThumb(patch.photos[0]) } : {}),
         self_deliver: patch.deliveryOptions?.selfDeliver,
         courier: patch.deliveryOptions?.courier,
         ...(patch.buybackWindowDays != null ? { buyback_window_days: patch.buybackWindowDays } : {}),
@@ -829,6 +862,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await supabase.from("notes").insert({
         seller_id: currentUserId, title: n.title, course: n.course, price: n.price,
         pages: n.pages, is_digital: n.isDigital, photos: n.photos,
+        thumb_url: await makeThumb(n.photos?.[0]),
       });
       await refresh();
     },
@@ -1099,8 +1133,10 @@ export function useTheme() {
 }
 
 /* ---------- File → data URLs (existing pages rely on this) ---------- */
-const MAX_IMAGE_EDGE = 1280;
-const IMAGE_QUALITY = 0.72;
+const MAX_IMAGE_EDGE = 1024;
+const IMAGE_QUALITY = 0.62;
+const THUMB_EDGE = 320;
+const THUMB_QUALITY = 0.55;
 
 function readAsDataUrl(f: File): Promise<string> {
   return new Promise<string>((resolve, reject) => {
@@ -1111,30 +1147,43 @@ function readAsDataUrl(f: File): Promise<string> {
   });
 }
 
-/** Downscale to <=1280px on the long edge and re-encode as JPEG to keep payloads (and mobile data) small. */
-export async function compressImageFile(f: File): Promise<string> {
-  const original = await readAsDataUrl(f);
-  if (typeof document === "undefined" || !f.type.startsWith("image/")) return original;
+/** Re-encode a data URL at a smaller edge/quality. Returns null when it can't run (SSR). */
+async function resizeDataUrl(src: string, edge: number, quality: number): Promise<string | null> {
+  if (typeof document === "undefined" || !src.startsWith("data:image")) return null;
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
       const i = new Image();
       i.onload = () => resolve(i);
       i.onerror = reject;
-      i.src = original;
+      i.src = src;
     });
-    const scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(img.width, img.height));
+    const scale = Math.min(1, edge / Math.max(img.width, img.height));
     const w = Math.max(1, Math.round(img.width * scale));
     const h = Math.max(1, Math.round(img.height * scale));
     const canvas = document.createElement("canvas");
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return original;
+    if (!ctx) return null;
     ctx.drawImage(img, 0, 0, w, h);
-    const out = canvas.toDataURL("image/jpeg", IMAGE_QUALITY);
-    return out.length < original.length ? out : original;
+    return canvas.toDataURL("image/jpeg", quality);
   } catch {
-    return original;
+    return null;
   }
+}
+
+/** Small (~10-20KB) preview stored alongside a listing so browse pages stay cheap. */
+export async function makeThumb(src?: string): Promise<string | null> {
+  if (!src) return null;
+  const out = await resizeDataUrl(src, THUMB_EDGE, THUMB_QUALITY);
+  return out ?? (src.length < 40_000 ? src : null);
+}
+
+/** Downscale to <=1024px on the long edge and re-encode as JPEG to keep payloads (and mobile data) small. */
+export async function compressImageFile(f: File): Promise<string> {
+  const original = await readAsDataUrl(f);
+  if (typeof document === "undefined" || !f.type.startsWith("image/")) return original;
+  const out = await resizeDataUrl(original, MAX_IMAGE_EDGE, IMAGE_QUALITY);
+  return out ?? original;
 }
 
 export function filesToDataUrls(files: FileList | File[]): Promise<string[]> {

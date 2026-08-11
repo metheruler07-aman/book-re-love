@@ -1,8 +1,8 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, MapPin, ShoppingBag, Repeat, HandCoins, Truck, MessageCircle, CreditCard, QrCode, Wallet, Banknote, Clock, XCircle, Percent, Handshake, Lock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { buybackPrice, useCurrentUser, useStore, type DeliveryMode, type PaymentKey, type Settlement } from "@/lib/mock-store";
+import { buybackPrice, loadListingPhotos, makeThumb, updateBookThumb, useCurrentUser, useStore, type DeliveryMode, type PaymentKey, type Settlement } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -72,7 +72,22 @@ function BookDetail() {
     .filter((k) => seller.paymentMethods[k])
     .map((k) => ({ key: k, ...PAY_META[k] }));
 
-  const hero = book.photos[heroIdx] ?? book.photos[0];
+  // Full-size photos live outside the browse payload; fetch them for this listing only.
+  const [photos, setPhotos] = useState<string[]>(book.photos);
+  useEffect(() => {
+    let alive = true;
+    if (book.photos.length) { setPhotos(book.photos); return; }
+    loadListingPhotos("book", book.id).then((p) => {
+      if (!alive) return;
+      setPhotos(p);
+      // Older listings predate thumbnails — generate one once so browse stays cheap.
+      if (!book.thumbUrl && p[0] && isOwner) {
+        makeThumb(p[0]).then((t) => { if (t) void updateBookThumb(book.id, t); });
+      }
+    });
+    return () => { alive = false; };
+  }, [book.id, book.photos, book.thumbUrl, isOwner]);
+  const hero = photos[heroIdx] ?? photos[0] ?? book.thumbUrl;
 
   if (!isVisible) {
     return (
@@ -110,9 +125,9 @@ function BookDetail() {
               ? <img src={hero} alt={book.title} className="h-full w-full object-cover" />
               : book.cover}
           </div>
-          {book.photos.length > 1 && (
+          {photos.length > 1 && (
             <div className="mt-3 grid grid-cols-5 gap-2">
-              {book.photos.map((p, i) => (
+              {photos.map((p, i) => (
                 <button
                   key={i}
                   onClick={() => setHeroIdx(i)}
