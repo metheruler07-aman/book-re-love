@@ -483,8 +483,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   /* ---------- Loaders ---------- */
   const loadPublic = useCallback(async () => {
   const [b, n, cReq, cUp, r, rl, ri, com, profs, ps] = await Promise.all([
-      supabase.from("books").select("*").order("listed_at", { ascending: false }),
-      supabase.from("notes").select("*").order("created_at", { ascending: false }),
+      supabase.from("books").select(BOOK_LIST_COLS).order("listed_at", { ascending: false }),
+      supabase.from("notes").select(NOTE_LIST_COLS).order("created_at", { ascending: false }),
       supabase.from("community_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("community_upvotes").select("*"),
       supabase.from("recommendations").select("*").order("created_at", { ascending: false }),
