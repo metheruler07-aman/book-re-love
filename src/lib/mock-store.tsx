@@ -814,14 +814,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // the admin queue without waiting on a full public/private reload.
       const { data, error } = await supabase.from("books").insert({
         seller_id: currentUserId, title: b.title, author: b.author, cover: b.cover || "📖",
-        photos: b.photos, price: b.price, rent_per_week: b.rentPerWeek ?? null,
+        photos: b.photos, thumb_url: await makeThumb(b.photos?.[0]),
+        price: b.price, rent_per_week: b.rentPerWeek ?? null,
         condition: b.condition, category: b.category, area: b.area,
         original_price: b.originalPrice, description: b.description ?? null,
         self_deliver: b.deliveryOptions.selfDeliver, courier: b.deliveryOptions.courier,
         buyback_window_days: b.buybackWindowDays,
         delivery_deadline_days: b.deliveryDeadlineDays,
         chat_fee: b.chatFee || platformSettings.defaultChatFee,
-      }).select("*").single();
+      }).select(BOOK_LIST_COLS).single();
       if (error) throw error;
       if (data) setBooks((cur) => [toBook(data as unknown as BookRow), ...cur]);
     },
@@ -831,7 +832,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         title: patch.title, author: patch.author, price: patch.price,
         rent_per_week: patch.rentPerWeek ?? null, condition: patch.condition,
         category: patch.category, area: patch.area, description: patch.description,
-        photos: patch.photos, cover: patch.cover,
+        cover: patch.cover,
+        ...(patch.photos ? { photos: patch.photos, thumb_url: await makeThumb(patch.photos[0]) } : {}),
         self_deliver: patch.deliveryOptions?.selfDeliver,
         courier: patch.deliveryOptions?.courier,
         ...(patch.buybackWindowDays != null ? { buyback_window_days: patch.buybackWindowDays } : {}),
@@ -855,6 +857,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await supabase.from("notes").insert({
         seller_id: currentUserId, title: n.title, course: n.course, price: n.price,
         pages: n.pages, is_digital: n.isDigital, photos: n.photos,
+        thumb_url: await makeThumb(n.photos?.[0]),
       });
       await refresh();
     },
