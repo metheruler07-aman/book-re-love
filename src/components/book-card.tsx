@@ -11,7 +11,7 @@ const conditionTone: Record<Book["condition"], string> = {
 };
 
 export function BookCard({ book }: { book: Book }) {
-  const hero = book.photos[0];
+  const hero = book.thumbUrl ?? book.photos[0];
   return (
     <Link
       to="/book/$id"
