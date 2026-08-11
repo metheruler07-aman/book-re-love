@@ -41,6 +41,7 @@ export type Database = {
           seller_id: string
           sold: boolean
           status: Database["public"]["Enums"]["listing_status"]
+          thumb_url: string | null
           title: string
         }
         Insert: {
@@ -69,6 +70,7 @@ export type Database = {
           seller_id: string
           sold?: boolean
           status?: Database["public"]["Enums"]["listing_status"]
+          thumb_url?: string | null
           title: string
         }
         Update: {
@@ -97,6 +99,7 @@ export type Database = {
           seller_id?: string
           sold?: boolean
           status?: Database["public"]["Enums"]["listing_status"]
+          thumb_url?: string | null
           title?: string
         }
         Relationships: []
@@ -333,6 +336,7 @@ export type Database = {
           seller_id: string
           sold: boolean
           status: Database["public"]["Enums"]["listing_status"]
+          thumb_url: string | null
           title: string
         }
         Insert: {
@@ -349,6 +353,7 @@ export type Database = {
           seller_id: string
           sold?: boolean
           status?: Database["public"]["Enums"]["listing_status"]
+          thumb_url?: string | null
           title: string
         }
         Update: {
@@ -365,6 +370,7 @@ export type Database = {
           seller_id?: string
           sold?: boolean
           status?: Database["public"]["Enums"]["listing_status"]
+          thumb_url?: string | null
           title?: string
         }
         Relationships: []
