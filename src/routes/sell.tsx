@@ -88,8 +88,8 @@ function Sell() {
                 <TableRow key={b.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      {b.photos[0]
-                        ? <img src={b.photos[0]} alt="" className="h-10 w-10 rounded object-cover" />
+                      {(b.thumbUrl ?? b.photos[0])
+                        ? <img src={(b.thumbUrl ?? b.photos[0])} alt="" className="h-10 w-10 rounded object-cover" />
                         : <span className="text-2xl">{b.cover}</span>}
                       <div>
                         <div className="font-medium">{b.title}</div>

@@ -179,8 +179,8 @@ function ListingsBlock({ title, items, kind }: { title: string; items: (Book | N
           return (
             <li key={it.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
               <div className="flex items-start gap-3">
-                {it.photos[0]
-                  ? <img src={it.photos[0]} alt="" className="h-12 w-12 rounded object-cover" />
+                {(it.thumbUrl ?? it.photos[0])
+                  ? <img src={(it.thumbUrl ?? it.photos[0])} alt="" className="h-12 w-12 rounded object-cover" />
                   : <div className="grid h-12 w-12 place-items-center rounded bg-secondary text-2xl">{isBook ? b.cover : "📝"}</div>}
                 <div>
                   <div className="font-medium">{it.title}</div>
@@ -222,8 +222,8 @@ function OrderRow({ order, viewer }: { order: Order; viewer: "buyer" | "seller" 
       className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 hover:border-accent/50"
     >
       <div className="flex items-start gap-3">
-        {book.photos[0]
-          ? <img src={book.photos[0]} alt="" className="h-12 w-12 rounded object-cover" />
+        {(book.thumbUrl ?? book.photos[0])
+          ? <img src={(book.thumbUrl ?? book.photos[0])} alt="" className="h-12 w-12 rounded object-cover" />
           : <div className="grid h-12 w-12 place-items-center rounded bg-secondary text-2xl">{book.cover}</div>}
         <div>
           <div className="font-medium">{book.title}</div>
