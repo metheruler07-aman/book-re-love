@@ -18,7 +18,7 @@ export default defineConfig({
       VitePWA({
         registerType: "autoUpdate",
         injectRegister: null,
-        filename: "sw.js",
+        filename: "pwabuilder-sw.js",
         outDir: "dist/client",
         devOptions: { enabled: false },
         manifest: false,

@@ -1,4 +1,5 @@
-const SW_URL = "/sw.js";
+const SW_URL = "/pwabuilder-sw.js";
+const LEGACY_SW_URLS = ["/sw.js"];
 
 function isBlockedContext(): boolean {
   if (typeof window === "undefined") return true;
@@ -17,12 +18,15 @@ function isBlockedContext(): boolean {
   return false;
 }
 
-async function unregisterExisting() {
+async function unregisterMatching(urls: string[]) {
   if (!("serviceWorker" in navigator)) return;
   const regs = await navigator.serviceWorker.getRegistrations();
   await Promise.allSettled(
     regs
-      .filter((r) => (r.active?.scriptURL ?? r.installing?.scriptURL ?? "").endsWith(SW_URL))
+      .filter((r) => {
+        const script = r.active?.scriptURL ?? r.installing?.scriptURL ?? r.waiting?.scriptURL ?? "";
+        return urls.some((u) => script.endsWith(u));
+      })
       .map((r) => r.unregister()),
   );
 }
@@ -30,10 +34,12 @@ async function unregisterExisting() {
 export function registerServiceWorker() {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
   if (isBlockedContext()) {
-    void unregisterExisting();
+    void unregisterMatching([SW_URL, ...LEGACY_SW_URLS]);
     return;
   }
-  window.addEventListener("load", () => {
+  const run = () => {
     void navigator.serviceWorker.register(SW_URL, { scope: "/" }).catch(() => {});
-  });
+  };
+  if (document.readyState === "complete") run();
+  else window.addEventListener("load", run, { once: true });
 }
