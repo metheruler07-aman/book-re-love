@@ -103,3 +103,8 @@
     radial-gradient(circle at 70% 60%, color-mix(in oklab, var(--foreground) 2%, transparent) 0.5px, transparent 1px);
   background-size: 6px 6px, 9px 9px;
 }
+
+/* Hide the Lovable edit badge on published deployments */
+#lovable-badge {
+  display: none !important;
+}
