@@ -1,0 +1,15 @@
+[{
+
+  "relation": ["delegate_permission/common.handle_all_urls"],
+
+  "target": {
+
+    "namespace": "android_app",
+
+    "package_name": "app.lovable.book_re_love.twa",
+
+    "sha256_cert_fingerprints": ["67:2D:E2:D0:F1:FE:45:F0:20:E8:BC:22:DB:0B:D3:7B:05:CF:59:C0:D8:A4:1C:E0:C9:32:66:2C:89:6A:94:32"]
+
+  }
+
+}]
