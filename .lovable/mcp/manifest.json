@@ -1,0 +1,229 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.3",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://hijokcqygnteqfpkcsds.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "the-book-ledger",
+      "version": "0.1.0",
+      "title": "The book ledger"
+    },
+    "tools": [
+      {
+        "name": "search_books",
+        "title": "Search books",
+        "description": "Search approved, available book listings on Book Ledger by title/author text, category, or area.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "description": "Text to match against title or author.",
+              "type": "string"
+            },
+            "category": {
+              "description": "Category, e.g. Fiction, NCERT, Examination.",
+              "type": "string"
+            },
+            "area": {
+              "description": "Neighborhood/area name to filter by.",
+              "type": "string"
+            },
+            "max_price": {
+              "description": "Maximum price in rupees.",
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "limit": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_book",
+        "title": "Get book listing",
+        "description": "Fetch the full details of one Book Ledger listing by its id (photos excluded).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Listing id."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_listings",
+        "title": "List my listings",
+        "description": "List the signed-in user's own book listings, including pending and rejected ones.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "status": {
+              "description": "Filter by moderation status.",
+              "type": "string",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected"
+              ]
+            },
+            "limit": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_orders",
+        "title": "List my orders",
+        "description": "List orders where the signed-in user is the buyer or the seller (purchases, sales, rentals).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "role": {
+              "default": "any",
+              "type": "string",
+              "enum": [
+                "buyer",
+                "seller",
+                "any"
+              ]
+            },
+            "limit": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_listing",
+        "title": "Create a book listing",
+        "description": "Create a book listing for the signed-in user. The listing starts as pending and only goes live after an admin approves it. Photos must be added in the app.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1
+            },
+            "author": {
+              "type": "string",
+              "minLength": 1
+            },
+            "category": {
+              "default": "Others",
+              "type": "string"
+            },
+            "condition": {
+              "type": "string",
+              "enum": [
+                "new",
+                "like-new",
+                "good",
+                "fair",
+                "worn"
+              ],
+              "description": "Condition grade."
+            },
+            "price": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Asking price in rupees."
+            },
+            "original_price": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Original/MRP price in rupees."
+            },
+            "rent_per_week": {
+              "description": "Weekly rent, if rentable.",
+              "type": "number",
+              "minimum": 0
+            },
+            "area": {
+              "description": "Neighborhood/area for handoff.",
+              "type": "string"
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "self_deliver": {
+              "default": true,
+              "type": "boolean"
+            },
+            "courier": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "author",
+            "condition",
+            "price",
+            "original_price"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
