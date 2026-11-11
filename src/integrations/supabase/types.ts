@@ -895,6 +895,28 @@ export type Database = {
       }
     }
     Functions: {
+      confirm_order_delivery: {
+        Args: {
+          _handoff_code?: string
+          _order_id: string
+          _received_photo?: string
+        }
+        Returns: boolean
+      }
+      get_public_platform_settings: {
+        Args: never
+        Returns: {
+          default_chat_fee: number
+          owner_upi_id: string
+        }[]
+      }
+      get_recommendation_interest_counts: {
+        Args: never
+        Returns: {
+          interest_count: number
+          recommendation_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

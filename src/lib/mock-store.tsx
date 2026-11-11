@@ -487,7 +487,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   /* ---------- Loaders ---------- */
   const loadPublic = useCallback(async () => {
-  const [b, n, cReq, cUp, r, rl, ri, com, profs, ps] = await Promise.all([
+    const [b, n, cReq, cUp, r, rl, ri, riCounts, com, profs, ps] = await Promise.all([
       supabase.from("books").select(BOOK_LIST_COLS).order("listed_at", { ascending: false }),
       supabase.from("notes").select(NOTE_LIST_COLS).order("created_at", { ascending: false }),
       supabase.from("community_requests").select("*").order("created_at", { ascending: false }),
@@ -495,16 +495,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       supabase.from("recommendations").select("*").order("created_at", { ascending: false }),
       supabase.from("recommendation_likes").select("*"),
       supabase.from("recommendation_interests").select("*"),
+      supabase.rpc("get_recommendation_interest_counts"),
       supabase.from("commissions").select("*"),
       supabase.from("public_profiles").select("*"),
-      supabase.from("platform_settings").select("*").maybeSingle(),
+      supabase.rpc("get_public_platform_settings"),
     ]);
     setBooks((b.data ?? []).map((row) => toBook(row as unknown as BookRow)));
     setNotes((n.data ?? []).map((row) => toNote(row as unknown as NoteRow)));
-    if (ps.data) {
+    if (ps.data?.[0]) {
       setPlatformSettings({
-        ownerUpiId: (ps.data as { owner_upi_id: string }).owner_upi_id ?? "",
-        defaultChatFee: Number((ps.data as { default_chat_fee: number }).default_chat_fee ?? 49),
+        ownerUpiId: ps.data[0].owner_upi_id ?? "",
+        defaultChatFee: Number(ps.data[0].default_chat_fee ?? 49),
       });
     }
 
@@ -517,12 +518,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })));
 
     const likes = (rl.data ?? []) as { recommendation_id: string; user_id: string }[];
-    const interests = (ri.data ?? []) as { recommendation_id: string; user_id: string }[];
+    const ownInterests = (ri.data ?? []) as { recommendation_id: string; user_id: string }[];
+    const ownInterestIds = new Set(ownInterests.map((interest) => interest.recommendation_id));
+    const interestCounts = new Map(
+      (riCounts.data ?? []).map((row) => [row.recommendation_id, Number(row.interest_count)]),
+    );
     setRecommendations(((r.data ?? []) as Array<{ id: string; recommender_id: string; title: string; author: string; blurb: string; created_at: string }>).map((rc) => ({
       id: rc.id, title: rc.title, author: rc.author, blurb: rc.blurb,
       recommenderId: rc.recommender_id, createdAt: (rc.created_at || "").slice(0, 10),
       likes: likes.filter((l) => l.recommendation_id === rc.id).map((l) => l.user_id),
-      wantToRent: interests.filter((l) => l.recommendation_id === rc.id).map((l) => l.user_id),
+      wantToRent: Array.from({ length: interestCounts.get(rc.id) ?? 0 }, (_, index) =>
+        ownInterestIds.has(rc.id) && index === 0 ? currentUserId : `interest-${rc.id}-${index}`,
+      ),
     })));
 
     const perListing: Record<string, number> = {};
@@ -556,7 +563,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setUsers(((profs.data ?? []) as unknown as ProfileRow[]).map((p) =>
       toUser({ ...p, ...(privMap.get(p.id) ?? {}) }, roleMap.get(p.id) ?? "user"),
     ));
-  }, []);
+  }, [currentUserId]);
 
   const loadPrivate = useCallback(async (uid: string) => {
     const [o, of0, m, q, qr, nt, bbr, bbe] = await Promise.all([
@@ -1017,18 +1024,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return order;
     },
     confirmHandoff: async (orderId, code) => {
-      // Only buyer can see the code; seller enters it. Verify server-side by using code as filter.
-      const { data, error } = await supabase.from("orders").update({
-        status: "delivered", delivered_at: new Date().toISOString(),
-      }).eq("id", orderId).eq("handoff_code", code).select("id");
-      if (error || !data?.length) return { ok: false };
+      const { data, error } = await supabase.rpc("confirm_order_delivery", {
+        _order_id: orderId,
+        _handoff_code: code,
+      });
+      if (error || !data) return { ok: false };
       await loadPrivate(currentUserId);
       return { ok: true };
     },
     confirmReceived: async (orderId, photo) => {
-      await supabase.from("orders").update({
-        status: "delivered", received_photo: photo, delivered_at: new Date().toISOString(),
-      }).eq("id", orderId);
+      const { data, error } = await supabase.rpc("confirm_order_delivery", {
+        _order_id: orderId,
+        _received_photo: photo,
+      });
+      if (error || !data) throw error ?? new Error("Could not confirm delivery");
       await loadPrivate(currentUserId);
     },
     setOrderNotForResale: async (orderId, value) => {

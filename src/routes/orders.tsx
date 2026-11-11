@@ -146,9 +146,13 @@ function OrderCard({ order, viewer }: { order: Order; viewer: "buyer" | "seller"
                     }} />
                   </label>
                   {photo && <img src={photo} alt="" className="h-12 w-12 rounded object-cover" />}
-                  <Button size="sm" disabled={!photo} onClick={() => {
-                    confirmReceived(order.id, photo);
-                    toast.success("Delivery confirmed. Thanks!");
+                  <Button size="sm" disabled={!photo} onClick={async () => {
+                    try {
+                      await confirmReceived(order.id, photo);
+                      toast.success("Delivery confirmed. Thanks!");
+                    } catch {
+                      toast.error("Could not confirm delivery. Please try again.");
+                    }
                   }}>
                     Confirm received
                   </Button>
