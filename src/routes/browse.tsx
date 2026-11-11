@@ -34,6 +34,9 @@ function Browse() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState(category ?? "All");
   const [cond, setCond] = useState<(typeof CONDITIONS)[number]>("All");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [area, setArea] = useState("");
   const [sort, setSort] = useState("newest");
   const [visible, setVisible] = useState(PAGE_SIZE);
 
@@ -49,13 +52,21 @@ function Browse() {
     if (cat === "Others") list = list.filter((b) => !KNOWN.has(b.category));
     else if (cat !== "All") list = list.filter((b) => b.category === cat);
     if (cond !== "All") list = list.filter((b) => b.condition === cond);
+    if (minPrice !== "") list = list.filter((b) => b.price >= Number(minPrice));
+    if (maxPrice !== "") list = list.filter((b) => b.price <= Number(maxPrice));
+    if (area.trim()) {
+      const searchArea = area.trim().toLowerCase();
+      list = list.filter((b) => b.area.toLowerCase().includes(searchArea));
+    }
     if (sort === "price-asc") list = [...list].sort((a, b) => a.price - b.price);
     if (sort === "price-desc") list = [...list].sort((a, b) => b.price - a.price);
     if (sort === "newest") list = [...list].sort((a, b) => b.listedAt.localeCompare(a.listedAt));
     return list;
-  }, [books, q, cat, cond, sort]);
+  }, [books, q, cat, cond, minPrice, maxPrice, area, sort]);
 
-  useEffect(() => { setVisible(PAGE_SIZE); }, [q, cat, cond, sort]);
+  useEffect(() => {
+    setVisible(PAGE_SIZE);
+  }, [q, cat, cond, minPrice, maxPrice, area, sort]);
   const shown = results.slice(0, visible);
 
   return (
@@ -76,8 +87,8 @@ function Browse() {
       />
 
 
-      <div className="mb-8 grid gap-3 rounded-lg border border-border bg-card p-4 md:grid-cols-[1.5fr_1fr_1fr_1fr_auto]">
-        <div className="relative">
+      <div className="mb-8 grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-[1.5fr_1fr_1fr_0.8fr_0.8fr_1.2fr_1fr_auto]">
+        <div className="relative lg:col-span-2 xl:col-span-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Title or author…" className="pl-9" />
         </div>
@@ -89,6 +100,25 @@ function Browse() {
           <SelectTrigger><SelectValue placeholder="Condition" /></SelectTrigger>
           <SelectContent>{CONDITIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
         </Select>
+        <Input
+          type="number"
+          value={minPrice}
+          onChange={(e) => setMinPrice(e.target.value)}
+          placeholder="Min ₹"
+          aria-label="Minimum price"
+        />
+        <Input
+          type="number"
+          value={maxPrice}
+          onChange={(e) => setMaxPrice(e.target.value)}
+          placeholder="Max ₹"
+          aria-label="Maximum price"
+        />
+        <Input
+          value={area}
+          onChange={(e) => setArea(e.target.value)}
+          placeholder="Area or locality"
+        />
         <Select value={sort} onValueChange={setSort}>
           <SelectTrigger><SelectValue placeholder="Sort" /></SelectTrigger>
           <SelectContent>
@@ -97,7 +127,18 @@ function Browse() {
             <SelectItem value="price-desc">Price ↓</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="ghost" onClick={() => { setQ(""); setCat("All"); setCond("All"); setSort("newest"); }}>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setQ("");
+            setCat("All");
+            setCond("All");
+            setMinPrice("");
+            setMaxPrice("");
+            setArea("");
+            setSort("newest");
+          }}
+        >
           Reset
         </Button>
       </div>
