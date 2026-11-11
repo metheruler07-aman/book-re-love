@@ -6,13 +6,14 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { registerServiceWorker } from "@/lib/register-sw";
 import { StoreProvider, ThemeProvider } from "@/lib/mock-store";
-import { SiteHeader, SiteFooter } from "@/components/site-header";
+import { SiteHeader, SiteFooter, MobileBottomNavigation } from "@/components/site-header";
+import { OfflineScreen } from "@/components/offline-screen";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -66,7 +67,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Book Ledger — A neighborhood book marketplace" },
       { name: "description", content: "Buy, sell, rent, and trade books with readers nearby. Sell your class notes. Request the titles you're hunting." },
       { name: "author", content: "Book Ledger" },
@@ -115,19 +116,38 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [isOffline, setIsOffline] = useState(false);
+
   useEffect(() => {
     registerServiceWorker();
+    const updateConnection = () => setIsOffline(!navigator.onLine);
+    updateConnection();
+    window.addEventListener("online", updateConnection);
+    window.addEventListener("offline", updateConnection);
+
+    return () => {
+      window.removeEventListener("online", updateConnection);
+      window.removeEventListener("offline", updateConnection);
+    };
   }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <StoreProvider>
           <div className="flex min-h-screen flex-col bg-background text-foreground">
-            <SiteHeader />
-            <main className="flex-1">
-              <Outlet />
-            </main>
-            <SiteFooter />
+            {isOffline ? (
+              <OfflineScreen />
+            ) : (
+              <>
+                <SiteHeader />
+                <main className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+                  <Outlet />
+                </main>
+                <SiteFooter />
+                <MobileBottomNavigation />
+              </>
+            )}
           </div>
           <Toaster />
         </StoreProvider>

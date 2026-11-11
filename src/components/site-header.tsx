@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { Moon, Sun, LogIn, LogOut, Menu, LifeBuoy, Shield, Store, MessageCircle, Sparkles, Users, ScrollText, Search, Package, Settings, User as UserIcon } from "lucide-react";
 import { useCurrentUser, useStore, useTheme } from "@/lib/mock-store";
@@ -30,8 +30,8 @@ export function SiteHeader() {
   const closeDrawer = () => setDrawerOpen(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-3 sm:gap-3 sm:px-6 md:h-16">
         {/* Mobile drawer */}
         <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
           <SheetTrigger asChild>
@@ -67,7 +67,7 @@ export function SiteHeader() {
         </Sheet>
 
         <Link to="/" className="flex items-center gap-2">
-          <img src="/book-ledger-icon.svg" alt="" className="h-9 w-9 rounded-md" />
+          <img src="/book-ledger-icon.svg" alt="" className="h-8 w-8 rounded-md sm:h-9 sm:w-9" />
           <div className="leading-tight">
             <div className="font-display text-lg font-semibold">Book Ledger</div>
             <div className="hidden text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:block">
@@ -132,6 +132,43 @@ export function SiteHeader() {
         </div>
       </div>
     </header>
+  );
+}
+
+const mobileNavLinks = [
+  { to: "/browse" as const, label: "Shop", icon: Search },
+  { to: "/notes" as const, label: "Notes", icon: ScrollText },
+  { to: "/recommendations" as const, label: "Recs", icon: Sparkles },
+  { to: "/community" as const, label: "Community", icon: Users },
+  { to: "/my-space" as const, label: "My Space", icon: UserIcon },
+];
+
+export function MobileBottomNavigation() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+
+  return (
+    <nav
+      aria-label="Main navigation"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+    >
+      <div className="grid h-16 grid-cols-5">
+        {mobileNavLinks.map(({ to, label, icon: Icon }) => {
+          const active = pathname === to || pathname.startsWith(`${to}/`) || (to === "/browse" && (pathname === "/" || pathname.startsWith("/book/")));
+
+          return (
+            <Link
+              key={to}
+              to={to}
+              aria-current={active ? "page" : undefined}
+              className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[10px] font-medium transition-colors ${active ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <Icon aria-hidden="true" className="h-5 w-5 shrink-0" />
+              <span className="max-w-full truncate">{label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 

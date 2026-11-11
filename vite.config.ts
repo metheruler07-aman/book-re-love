@@ -25,8 +25,8 @@ export default defineConfig({
         devOptions: { enabled: false },
         manifest: false,
         workbox: {
-          globPatterns: ["**/*.{js,css,svg,png,ico,woff2}"],
-          navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
+          globPatterns: ["**/*.{js,css,svg,png,ico,woff2,html}"],
+          navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /^\/offline\.html$/],
           runtimeCaching: [
             {
               urlPattern: ({ request }: { request: Request }) => request.mode === "navigate",
@@ -35,6 +35,11 @@ export default defineConfig({
                 cacheName: "html-navigations",
                 networkTimeoutSeconds: 5,
                 expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 },
+                plugins: [
+                  {
+                    handlerDidError: async () => (await caches.match("/offline.html")) ?? Response.error(),
+                  },
+                ],
               },
             },
             {

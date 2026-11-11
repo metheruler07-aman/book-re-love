@@ -10,3 +10,5 @@
 <!-- LOVABLE:END -->
 
 Order delivery status changes only through an authenticated database function that validates the handoff code or courier receipt, so client updates cannot set delivery status directly.
+
+Mobile offline handling lives in the shared app shell and a precached HTML navigation fallback, so active sessions and cold offline navigations both get a recovery screen.
