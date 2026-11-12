@@ -76,6 +76,10 @@ export type Book = {
   rejectionNote?: string;
   deliveryOptions: DeliveryOptions;
   buybackWindowDays: number;
+  buybackEnabled: boolean;
+  buybackPercent: number;
+  buybackMinCondition: Condition;
+  buybackNotes?: string;
   chatActivated: boolean;
   chatFee: number;
   chatPaidAt?: string;
@@ -175,6 +179,14 @@ export type Order = {
   createdAt: string;
   notForResale: boolean;
   settlement: Settlement;
+  buybackTerms?: BuybackTerms | null;
+};
+
+export type BuybackTerms = {
+  enabled: boolean;
+  percent: number;
+  minCondition: Condition;
+  notes?: string;
 };
 
 export type BuybackStatus = "pending_inspection" | "approved" | "rejected";
@@ -209,8 +221,18 @@ export type BuybackExtension = {
 
 /* Helpers */
 const CONDITION_FACTOR: Record<Condition, number> = { "New": 1.0, "Like New": 0.9, "Good": 0.75, "Fair": 0.55 };
-export function buybackPrice(basePaidAmount: number, condition: Condition) {
-  return Math.round(basePaidAmount * 0.5 * CONDITION_FACTOR[condition] * 100) / 100;
+export function isValidBuybackPercent(percent: number): boolean {
+  return Number.isInteger(percent) && percent >= 25 && percent <= 75;
+}
+
+export function buybackPrice(basePaidAmount: number, condition: Condition, percent = 50) {
+  return Math.round(basePaidAmount * (percent / 100) * CONDITION_FACTOR[condition] * 100) / 100;
+}
+
+const CONDITION_RANK: Record<Condition, number> = { New: 3, "Like New": 2, Good: 1, Fair: 0 };
+
+export function meetsBuybackMinimumCondition(condition: Condition, minimum: Condition): boolean {
+  return CONDITION_RANK[condition] >= CONDITION_RANK[minimum];
 }
 export function isWithinBuybackWindow(orderCreatedAt: string, windowDays: number): boolean {
   const created = new Date(orderCreatedAt).getTime();
@@ -261,6 +283,7 @@ type BookRow = {
   status: ListingStatus; rejection_note: string | null; commission_override: number | null;
   self_deliver: boolean; courier: boolean; removed: boolean; listed_at: string;
   buyback_window_days: number;
+  buyback_enabled: boolean; buyback_percent: number; buyback_min_condition: Condition; buyback_notes: string | null;
   chat_activated?: boolean; chat_fee?: number; chat_paid_at?: string | null;
   delivery_deadline_days?: number; sold?: boolean;
 };
@@ -273,7 +296,8 @@ type BookRow = {
 const BOOK_LIST_COLS =
   "id,seller_id,title,author,cover,thumb_url,price,rent_per_week,condition,category,area," +
   "original_price,description,status,rejection_note,commission_override,self_deliver,courier," +
-  "removed,listed_at,buyback_window_days,chat_activated,chat_fee,chat_paid_at,delivery_deadline_days,sold";
+  "removed,listed_at,buyback_window_days,buyback_enabled,buyback_percent,buyback_min_condition,buyback_notes," +
+  "chat_activated,chat_fee,chat_paid_at,delivery_deadline_days,sold";
 const NOTE_LIST_COLS =
   "id,seller_id,title,course,price,pages,is_digital,thumb_url,status,rejection_note,commission_override,removed,sold";
 
@@ -288,6 +312,10 @@ function toBook(b: BookRow): Book {
     rejectionNote: b.rejection_note ?? undefined, removed: b.removed || undefined,
     deliveryOptions: { selfDeliver: b.self_deliver, courier: b.courier },
     buybackWindowDays: b.buyback_window_days ?? 30,
+    buybackEnabled: b.buyback_enabled ?? false,
+    buybackPercent: b.buyback_percent ?? 50,
+    buybackMinCondition: b.buyback_min_condition ?? "Fair",
+    buybackNotes: b.buyback_notes ?? undefined,
     chatActivated: !!b.chat_activated,
     chatFee: b.chat_fee != null ? Number(b.chat_fee) : 49,
     chatPaidAt: b.chat_paid_at ?? undefined,
@@ -581,6 +609,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       rental_weeks: number | null; amount: number; payment_method: PaymentKey;
       delivery_mode: DeliveryMode; handoff_code: string | null; received_photo: string | null;
       status: OrderStatus; created_at: string; not_for_resale: boolean; settlement?: string;
+        buyback_terms?: unknown;
     }>).map((o0) => ({
       id: o0.id, bookId: o0.book_id ?? "", buyerId: o0.buyer_id, sellerId: o0.seller_id,
       kind: (o0.kind === "rent" ? "rent" : "buy"),
@@ -591,6 +620,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       status: o0.status, createdAt: o0.created_at,
       notForResale: !!o0.not_for_resale,
       settlement: (o0.settlement === "direct" ? "direct" : "escrow") as Settlement,
+      buybackTerms: parseBuybackTerms(o0.buyback_terms),
     })));
 
     setOffers(((of0.data ?? []) as Array<{
@@ -832,6 +862,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         original_price: b.originalPrice, description: b.description ?? null,
         self_deliver: b.deliveryOptions.selfDeliver, courier: b.deliveryOptions.courier,
         buyback_window_days: b.buybackWindowDays,
+        buyback_enabled: b.buybackEnabled,
+        buyback_percent: b.buybackPercent,
+        buyback_min_condition: b.buybackMinCondition,
+        buyback_notes: b.buybackNotes ?? null,
         delivery_deadline_days: b.deliveryDeadlineDays,
         chat_fee: b.chatFee || platformSettings.defaultChatFee,
       }).select(BOOK_LIST_COLS).single();
@@ -849,6 +883,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         self_deliver: patch.deliveryOptions?.selfDeliver,
         courier: patch.deliveryOptions?.courier,
         ...(patch.buybackWindowDays != null ? { buyback_window_days: patch.buybackWindowDays } : {}),
+        ...(patch.buybackEnabled != null ? { buyback_enabled: patch.buybackEnabled } : {}),
+        ...(patch.buybackPercent != null ? { buyback_percent: patch.buybackPercent } : {}),
+        ...(patch.buybackMinCondition != null ? { buyback_min_condition: patch.buybackMinCondition } : {}),
+        ...(patch.buybackNotes !== undefined ? { buyback_notes: patch.buybackNotes ?? null } : {}),
         ...(patch.deliveryDeadlineDays != null ? { delivery_deadline_days: patch.deliveryDeadlineDays } : {}),
         ...(patch.sold != null ? { sold: patch.sold } : {}),
       }).eq("id", id);
@@ -1005,6 +1043,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         payment_method: input.paymentMethod,
         delivery_mode: input.deliveryMode,
         settlement: input.settlement,
+        buyback_terms: {
+          enabled: book.buybackEnabled,
+          percent: book.buybackPercent,
+          min_condition: book.buybackMinCondition,
+          notes: book.buybackNotes ?? null,
+        },
         ...(input.settlement === "direct" ? { status: "arranged_direct" as const } : {}),
       }).select("*").single();
       if (error || !data) throw error ?? new Error("Order failed");
@@ -1012,6 +1056,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         id: string; buyer_id: string; seller_id: string; book_id: string | null;
         rental_weeks: number | null; amount: number; payment_method: PaymentKey;
         delivery_mode: DeliveryMode; handoff_code: string | null; status: OrderStatus; created_at: string;
+        buyback_terms: unknown;
       };
       const order: Order = {
         id: row.id, bookId: row.book_id ?? book.id, buyerId: row.buyer_id, sellerId: row.seller_id,
@@ -1019,6 +1064,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         paymentMethod: row.payment_method, deliveryMode: row.delivery_mode,
         handoffCode: row.handoff_code ?? undefined, status: row.status, createdAt: row.created_at,
         notForResale: false, settlement: input.settlement,
+        buybackTerms: parseBuybackTerms(row.buyback_terms),
       };
       await loadPrivate(currentUserId);
       return order;
@@ -1048,8 +1094,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!currentUserId) throw new Error("Sign in required");
       const order = orders.find((o) => o.id === orderId);
       if (!order) throw new Error("Order not found");
+      const terms = order.buybackTerms;
+      if (terms?.enabled === false) throw new Error("Buyback is not available for this order");
+      if (terms && !meetsBuybackMinimumCondition(claimedCondition, terms.minCondition)) {
+        throw new Error(`Buyback requires at least ${terms.minCondition} condition`);
+      }
       const base = Number(order.amount);
-      const estimated = buybackPrice(base, claimedCondition);
+      const estimated = buybackPrice(base, claimedCondition, terms?.percent ?? 50);
       await supabase.from("buyback_requests").insert({
         order_id: orderId, buyer_id: currentUserId, seller_id: order.sellerId, book_id: order.bookId,
         claimed_condition: claimedCondition, base_amount: base, estimated_amount: estimated,

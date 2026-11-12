@@ -8,6 +8,13 @@
       "when": 1794365534138,
       "tag": "0000_secure_selected_order_and_read_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794450047570,
+      "tag": "0001_add_optional_buyback_terms",
+      "breakpoints": true
     }
   ]
 }

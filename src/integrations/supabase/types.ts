@@ -18,6 +18,10 @@ export type Database = {
         Row: {
           area: string
           author: string
+          buyback_enabled: boolean
+          buyback_min_condition: string
+          buyback_notes: string | null
+          buyback_percent: number
           buyback_window_days: number
           category: string
           chat_activated: boolean
@@ -47,6 +51,10 @@ export type Database = {
         Insert: {
           area?: string
           author: string
+          buyback_enabled?: boolean
+          buyback_min_condition?: string
+          buyback_notes?: string | null
+          buyback_percent?: number
           buyback_window_days?: number
           category?: string
           chat_activated?: boolean
@@ -76,6 +84,10 @@ export type Database = {
         Update: {
           area?: string
           author?: string
+          buyback_enabled?: boolean
+          buyback_min_condition?: string
+          buyback_notes?: string | null
+          buyback_percent?: number
           buyback_window_days?: number
           category?: string
           chat_activated?: boolean
@@ -465,6 +477,7 @@ export type Database = {
         Row: {
           amount: number
           book_id: string | null
+          buyback_terms: Json | null
           buyer_id: string
           commission_amount: number
           created_at: string
@@ -485,6 +498,7 @@ export type Database = {
         Insert: {
           amount: number
           book_id?: string | null
+          buyback_terms?: Json | null
           buyer_id: string
           commission_amount?: number
           created_at?: string
@@ -505,6 +519,7 @@ export type Database = {
         Update: {
           amount?: number
           book_id?: string | null
+          buyback_terms?: Json | null
           buyer_id?: string
           commission_amount?: number
           created_at?: string
