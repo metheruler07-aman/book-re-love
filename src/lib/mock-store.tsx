@@ -189,6 +189,25 @@ export type BuybackTerms = {
   notes?: string;
 };
 
+function parseBuybackTerms(value: unknown): BuybackTerms | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as Record<string, unknown>;
+  const percent = Number(row.percent);
+  const minCondition = row.min_condition ?? row.minCondition;
+  if (
+    typeof row.enabled !== "boolean" ||
+    !isValidBuybackPercent(percent) ||
+    typeof minCondition !== "string" ||
+    !["New", "Like New", "Good", "Fair"].includes(minCondition)
+  ) return null;
+  return {
+    enabled: row.enabled,
+    percent,
+    minCondition: minCondition as Condition,
+    notes: typeof row.notes === "string" ? row.notes : undefined,
+  };
+}
+
 export type BuybackStatus = "pending_inspection" | "approved" | "rejected";
 export type BuybackRequest = {
   id: string;

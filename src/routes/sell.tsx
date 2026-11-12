@@ -271,12 +271,13 @@ function NewListingDialog() {
   const [form, setForm] = useState({
     title: "", author: "", cover: "📖", price: "", originalPrice: "", rentPerWeek: "",
     condition: "Good" as Condition, category: "Fiction", description: "", buybackWindowDays: "30", deliveryDeadlineDays: "7",
+    buybackEnabled: false, buybackPercent: "50", buybackMinCondition: "Fair" as Condition, buybackNotes: "",
   });
   const [photos, setPhotos] = useState<string[]>([]);
   const [delivery, setDelivery] = useState<DeliveryOptions>({ selfDeliver: true, courier: false });
 
   const reset = () => {
-    setForm({ title: "", author: "", cover: "📖", price: "", originalPrice: "", rentPerWeek: "", condition: "Good", category: "Fiction", description: "", buybackWindowDays: "30", deliveryDeadlineDays: "7" });
+    setForm({ title: "", author: "", cover: "📖", price: "", originalPrice: "", rentPerWeek: "", condition: "Good", category: "Fiction", description: "", buybackWindowDays: "30", deliveryDeadlineDays: "7", buybackEnabled: false, buybackPercent: "50", buybackMinCondition: "Fair", buybackNotes: "" });
     setPhotos([]);
     setDelivery({ selfDeliver: true, courier: false });
   };
@@ -329,6 +330,30 @@ function NewListingDialog() {
               How many days after purchase a buyer can request buyback. They can still ask you to extend past this window.
             </p>
           </Field>
+          <Field label="Buyback terms">
+            <div className="grid gap-3 rounded-md border border-border p-3">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={form.buybackEnabled} onCheckedChange={(checked) => setForm({ ...form, buybackEnabled: !!checked })} />
+                Offer buyback for this book
+              </label>
+              {form.buybackEnabled && <>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Buyback percentage (25–75%)">
+                    <Input type="number" min={25} max={75} step={1} value={form.buybackPercent} onChange={(e) => setForm({ ...form, buybackPercent: e.target.value })} />
+                  </Field>
+                  <Field label="Minimum condition">
+                    <Select value={form.buybackMinCondition} onValueChange={(v) => setForm({ ...form, buybackMinCondition: v as Condition })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{CONDITIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+                <Field label="Buyback notes (optional)">
+                  <Textarea rows={2} value={form.buybackNotes} onChange={(e) => setForm({ ...form, buybackNotes: e.target.value })} />
+                </Field>
+              </>}
+            </div>
+          </Field>
           <Field label="Delivery deadline (days)">
             <Input
               type="number" min={1} value={form.deliveryDeadlineDays}
@@ -354,6 +379,10 @@ function NewListingDialog() {
               }
               if (photos.length === 0) { toast.error("Add at least one photo of the book"); return; }
               if (!delivery.selfDeliver && !delivery.courier) { toast.error("Pick at least one delivery option"); return; }
+              const buybackPercent = Number(form.buybackPercent);
+              if (form.buybackEnabled && (!Number.isInteger(buybackPercent) || buybackPercent < 25 || buybackPercent > 75)) {
+                toast.error("Buyback percentage must be from 25 to 75"); return;
+              }
               addBook({
                 title: form.title, author: form.author, cover: form.cover, photos,
                 price: Number(form.price), originalPrice: Number(form.originalPrice),
@@ -363,6 +392,10 @@ function NewListingDialog() {
                 description: form.description || undefined,
                 deliveryOptions: delivery,
                 buybackWindowDays: Number(form.buybackWindowDays) || 30,
+                buybackEnabled: form.buybackEnabled,
+                buybackPercent,
+                buybackMinCondition: form.buybackMinCondition,
+                buybackNotes: form.buybackNotes || undefined,
                 deliveryDeadlineDays: Number(form.deliveryDeadlineDays) || 7,
                 chatActivated: false, chatFee: 0, sold: false,
               });
@@ -385,6 +418,10 @@ function EditListingDialog({ id }: { id: string }) {
   const [price, setPrice] = useState(String(b.price));
   const [rent, setRent] = useState(b.rentPerWeek ? String(b.rentPerWeek) : "");
   const [cond, setCond] = useState<Condition>(b.condition);
+  const [buybackEnabled, setBuybackEnabled] = useState(b.buybackEnabled);
+  const [buybackPercent, setBuybackPercent] = useState(String(b.buybackPercent));
+  const [buybackMinCondition, setBuybackMinCondition] = useState<Condition>(b.buybackMinCondition);
+  const [buybackNotes, setBuybackNotes] = useState(b.buybackNotes ?? "");
   const [photos, setPhotos] = useState<string[]>(b.photos);
   const [photosLoading, setPhotosLoading] = useState(false);
   const [delivery, setDelivery] = useState<DeliveryOptions>(b.deliveryOptions);
@@ -420,13 +457,41 @@ function EditListingDialog({ id }: { id: string }) {
           </Field>
           <Field label="Photos">{photosLoading ? <p className="text-xs text-muted-foreground">Loading photos…</p> : <PhotoInput photos={photos} onChange={setPhotos} />}</Field>
           <Field label="Delivery options"><DeliveryPicker value={delivery} onChange={setDelivery} /></Field>
+          <Field label="Buyback terms">
+            <div className="grid gap-3 rounded-md border border-border p-3">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={buybackEnabled} onCheckedChange={(checked) => setBuybackEnabled(!!checked)} />
+                Offer buyback for this book
+              </label>
+              {buybackEnabled && <>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Buyback percentage (25–75%)">
+                    <Input type="number" min={25} max={75} step={1} value={buybackPercent} onChange={(e) => setBuybackPercent(e.target.value)} />
+                  </Field>
+                  <Field label="Minimum condition">
+                    <Select value={buybackMinCondition} onValueChange={(v) => setBuybackMinCondition(v as Condition)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{CONDITIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+                <Field label="Buyback notes (optional)">
+                  <Textarea rows={2} value={buybackNotes} onChange={(e) => setBuybackNotes(e.target.value)} />
+                </Field>
+              </>}
+            </div>
+          </Field>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={() => {
             if (photos.length === 0) { toast.error("At least one photo required"); return; }
             if (!delivery.selfDeliver && !delivery.courier) { toast.error("Pick a delivery option"); return; }
-            updateBook(id, { price: Number(price), rentPerWeek: rent ? Number(rent) : undefined, condition: cond, photos, deliveryOptions: delivery });
+            const percent = Number(buybackPercent);
+            if (buybackEnabled && (!Number.isInteger(percent) || percent < 25 || percent > 75)) {
+              toast.error("Buyback percentage must be from 25 to 75"); return;
+            }
+            updateBook(id, { price: Number(price), rentPerWeek: rent ? Number(rent) : undefined, condition: cond, photos, deliveryOptions: delivery, buybackEnabled, buybackPercent: percent, buybackMinCondition, buybackNotes: buybackNotes || undefined });
             toast.success("Listing updated");
             setOpen(false);
           }}>Save</Button>
