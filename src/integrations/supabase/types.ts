@@ -298,6 +298,47 @@ export type Database = {
           },
         ]
       }
+      enquiries: {
+        Row: {
+          book_id: string
+          buyer_id: string
+          created_at: string
+          decided_at: string | null
+          id: string
+          message: string | null
+          seller_id: string
+          status: string
+        }
+        Insert: {
+          book_id: string
+          buyer_id: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          message?: string | null
+          seller_id: string
+          status?: string
+        }
+        Update: {
+          book_id?: string
+          buyer_id?: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          message?: string | null
+          seller_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enquiries_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           book_id: string | null
@@ -926,6 +967,10 @@ export type Database = {
           _order_id: string
           _received_photo?: string
         }
+        Returns: boolean
+      }
+      enquiry_seller_matches: {
+        Args: { _book_id: string; _seller_id: string }
         Returns: boolean
       }
       get_community_upvote_counts: {

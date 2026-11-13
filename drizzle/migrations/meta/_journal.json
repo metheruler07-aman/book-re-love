@@ -43,6 +43,13 @@
       "when": 1794538161229,
       "tag": "0005_scope_public_profile_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794540929259,
+      "tag": "0006_create_book_enquiries",
+      "breakpoints": true
     }
   ]
 }
