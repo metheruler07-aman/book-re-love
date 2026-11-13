@@ -12,3 +12,5 @@
 Order delivery status changes only through an authenticated database function that validates the handoff code or courier receipt, so client updates cannot set delivery status directly.
 
 Mobile offline handling lives in the shared app shell and a precached HTML navigation fallback, so active sessions and cold offline navigations both get a recovery screen.
+
+Public marketplace reads use aggregate-only social metrics, authenticated commission-rate RPCs, scoped public profile policies, and synchronized listing moderation flags so profile and reaction identities stay private.

@@ -32,7 +32,12 @@ export default defineTool({
       .order("listed_at", { ascending: false })
       .limit(limit ?? 20);
 
-    if (query) q = q.or(`title.ilike.%${query}%,author.ilike.%${query}%`);
+    const safeQuery = query
+      ?.replace(/[^\p{L}\p{N}\s'-]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 100);
+    if (safeQuery) q = q.or(`title.ilike.%${safeQuery}%,author.ilike.%${safeQuery}%`);
     if (category) q = q.eq("category", category);
     if (area) q = q.ilike("area", `%${area}%`);
     if (max_price != null) q = q.lte("price", max_price);

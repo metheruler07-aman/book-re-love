@@ -534,16 +534,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   /* ---------- Loaders ---------- */
   const loadPublic = useCallback(async () => {
-    const [b, n, cReq, cUp, r, rl, ri, riCounts, com, profs, ps] = await Promise.all([
+    const [b, n, cReq, cUp, cUpCounts, r, rl, rlCounts, ri, riCounts, com, profs, ps] = await Promise.all([
       supabase.from("books").select(BOOK_LIST_COLS).order("listed_at", { ascending: false }),
       supabase.from("notes").select(NOTE_LIST_COLS).order("created_at", { ascending: false }),
       supabase.from("community_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("community_upvotes").select("*"),
-      supabase.from("recommendations").select("*").order("created_at", { ascending: false }),
+      supabase.rpc("get_community_upvote_counts"),
+      supabase.rpc("get_public_recommendations"),
       supabase.from("recommendation_likes").select("*"),
+      supabase.rpc("get_recommendation_like_counts"),
       supabase.from("recommendation_interests").select("*"),
       supabase.rpc("get_recommendation_interest_counts"),
-      supabase.from("commissions").select("*"),
+      supabase.rpc("get_public_commission_rates"),
       supabase.from("public_profiles").select("*"),
       supabase.rpc("get_public_platform_settings"),
     ]);
@@ -558,26 +560,44 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
 
     const ups = (cUp.data ?? []) as { request_id: string; user_id: string }[];
-    setRequests(((cReq.data ?? []) as Array<{ id: string; title: string; author: string | null; note: string | null; requester_id: string; created_at: string }>).map((r0) => ({
-      id: r0.id, title: r0.title, author: r0.author ?? undefined, note: r0.note ?? undefined,
-      requesterId: r0.requester_id, createdAt: (r0.created_at || "").slice(0, 10),
-      upvotes: ups.filter((u) => u.request_id === r0.id).map((u) => u.user_id),
-    })));
+    const upvoteCounts = new Map((cUpCounts.data ?? []).map((row) =>
+      [row.request_id, Number(row.upvote_count)] as const,
+    ));
+    setRequests(((cReq.data ?? []) as Array<{ id: string; title: string; author: string | null; note: string | null; requester_id: string; created_at: string }>).map((r0) => {
+      const ownUpvotes = ups.filter((u) => u.request_id === r0.id).map((u) => u.user_id);
+      return {
+        id: r0.id, title: r0.title, author: r0.author ?? undefined, note: r0.note ?? undefined,
+        requesterId: r0.requester_id, createdAt: (r0.created_at || "").slice(0, 10),
+        upvotes: [
+          ...ownUpvotes,
+          ...Array.from({ length: Math.max(0, (upvoteCounts.get(r0.id) ?? 0) - ownUpvotes.length) }, (_, i) => `upvote-${r0.id}-${i}`),
+        ],
+      };
+    }));
 
     const likes = (rl.data ?? []) as { recommendation_id: string; user_id: string }[];
+    const likeCounts = new Map((rlCounts.data ?? []).map((row) =>
+      [row.recommendation_id, Number(row.like_count)] as const,
+    ));
     const ownInterests = (ri.data ?? []) as { recommendation_id: string; user_id: string }[];
     const ownInterestIds = new Set(ownInterests.map((interest) => interest.recommendation_id));
     const interestCounts = new Map(
       (riCounts.data ?? []).map((row) => [row.recommendation_id, Number(row.interest_count)]),
     );
-    setRecommendations(((r.data ?? []) as Array<{ id: string; recommender_id: string; title: string; author: string; blurb: string; created_at: string }>).map((rc) => ({
-      id: rc.id, title: rc.title, author: rc.author, blurb: rc.blurb,
-      recommenderId: rc.recommender_id, createdAt: (rc.created_at || "").slice(0, 10),
-      likes: likes.filter((l) => l.recommendation_id === rc.id).map((l) => l.user_id),
-      wantToRent: Array.from({ length: interestCounts.get(rc.id) ?? 0 }, (_, index) =>
-        ownInterestIds.has(rc.id) && index === 0 ? currentUserId : `interest-${rc.id}-${index}`,
-      ),
-    })));
+    setRecommendations(((r.data ?? []) as Array<{ id: string; recommender_id: string; title: string; author: string; blurb: string; created_at: string }>).map((rc) => {
+      const ownLikes = likes.filter((l) => l.recommendation_id === rc.id).map((l) => l.user_id);
+      return {
+        id: rc.id, title: rc.title, author: rc.author, blurb: rc.blurb,
+        recommenderId: rc.recommender_id, createdAt: (rc.created_at || "").slice(0, 10),
+        likes: [
+          ...ownLikes,
+          ...Array.from({ length: Math.max(0, (likeCounts.get(rc.id) ?? 0) - ownLikes.length) }, (_, i) => `like-${rc.id}-${i}`),
+        ],
+        wantToRent: Array.from({ length: interestCounts.get(rc.id) ?? 0 }, (_, index) =>
+          ownInterestIds.has(rc.id) && index === 0 ? currentUserId : `interest-${rc.id}-${index}`,
+        ),
+      };
+    }));
 
     const perListing: Record<string, number> = {};
     (b.data ?? []).forEach((row: unknown) => {

@@ -42,6 +42,7 @@ export type Database = {
           removed: boolean
           rent_per_week: number | null
           self_deliver: boolean
+          seller_blocked: boolean
           seller_id: string
           sold: boolean
           status: Database["public"]["Enums"]["listing_status"]
@@ -75,6 +76,7 @@ export type Database = {
           removed?: boolean
           rent_per_week?: number | null
           self_deliver?: boolean
+          seller_blocked?: boolean
           seller_id: string
           sold?: boolean
           status?: Database["public"]["Enums"]["listing_status"]
@@ -108,6 +110,7 @@ export type Database = {
           removed?: boolean
           rent_per_week?: number | null
           self_deliver?: boolean
+          seller_blocked?: boolean
           seller_id?: string
           sold?: boolean
           status?: Database["public"]["Enums"]["listing_status"]
@@ -345,6 +348,7 @@ export type Database = {
           price: number
           rejection_note: string | null
           removed: boolean
+          seller_blocked: boolean
           seller_id: string
           sold: boolean
           status: Database["public"]["Enums"]["listing_status"]
@@ -362,6 +366,7 @@ export type Database = {
           price: number
           rejection_note?: string | null
           removed?: boolean
+          seller_blocked?: boolean
           seller_id: string
           sold?: boolean
           status?: Database["public"]["Enums"]["listing_status"]
@@ -379,6 +384,7 @@ export type Database = {
           price?: number
           rejection_note?: string | null
           removed?: boolean
+          seller_blocked?: boolean
           seller_id?: string
           sold?: boolean
           status?: Database["public"]["Enums"]["listing_status"]
@@ -910,6 +916,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_view_public_profile: {
+        Args: { _profile_id: string }
+        Returns: boolean
+      }
       confirm_order_delivery: {
         Args: {
           _handoff_code?: string
@@ -918,6 +928,20 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_community_upvote_counts: {
+        Args: never
+        Returns: {
+          request_id: string
+          upvote_count: number
+        }[]
+      }
+      get_public_commission_rates: {
+        Args: never
+        Returns: {
+          category: string
+          percent: number
+        }[]
+      }
       get_public_platform_settings: {
         Args: never
         Returns: {
@@ -925,10 +949,28 @@ export type Database = {
           owner_upi_id: string
         }[]
       }
+      get_public_recommendations: {
+        Args: never
+        Returns: {
+          author: string
+          blurb: string
+          created_at: string
+          id: string
+          recommender_id: string
+          title: string
+        }[]
+      }
       get_recommendation_interest_counts: {
         Args: never
         Returns: {
           interest_count: number
+          recommendation_id: string
+        }[]
+      }
+      get_recommendation_like_counts: {
+        Args: never
+        Returns: {
+          like_count: number
           recommendation_id: string
         }[]
       }

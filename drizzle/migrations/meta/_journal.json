@@ -15,6 +15,34 @@
       "when": 1794450047570,
       "tag": "0001_add_optional_buyback_terms",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794537581201,
+      "tag": "0002_secure_selected_marketplace_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794537831404,
+      "tag": "0003_protect_private_status_and_profile_cards",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794538045092,
+      "tag": "0004_scope_recommendation_feed_reads",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794538161229,
+      "tag": "0005_scope_public_profile_visibility",
+      "breakpoints": true
     }
   ]
 }
