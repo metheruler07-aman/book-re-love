@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, Clock, CheckCircle2, XCircle, ShieldCheck, ImagePlus, Handshake } from "lucide-react";
 import { toast } from "sonner";
-import { buybackPrice, filesToDataUrls, loadListingPhotos, useCurrentUser, useStore, type Condition, type DeliveryOptions } from "@/lib/mock-store";
+import { filesToDataUrls, loadListingPhotos, useCurrentUser, useStore, type Condition, type DeliveryOptions } from "@/lib/mock-store";
+import { FEES_ENABLED } from "@/lib/feature-flags";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,13 +18,14 @@ export const Route = createFileRoute("/sell")({
   head: () => ({
     meta: [
       { title: "Sell & rent books — Book Ledger" },
-      { name: "description", content: "List books for sale or rent. Listings go live after admin sets the platform cut and approves." },
+      { name: "description", content: "List books for sale or rent. Listings go live after admin approval." },
     ],
   }),
   component: Sell,
 });
 
 const CONDITIONS: Condition[] = ["New", "Like New", "Good", "Fair"];
+const BUYBACK_WINDOWS = [7, 15, 30, 60, 90] as const;
 const CATS = ["Examination", "Fiction", "Non-fiction", "NCERT", "Others"];
 const COVERS = ["📖", "📕", "📗", "📘", "📙", "📚", "🕮", "🌾", "🌲", "♾️"];
 
@@ -56,7 +58,7 @@ function Sell() {
       <div className="mb-6 rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
         <div className="flex items-center gap-2 font-medium text-accent"><ShieldCheck className="h-4 w-4" /> Approval required</div>
         <p className="mt-1 text-muted-foreground">
-          Every new listing is held for admin review. Admin sets the platform cut for your book, then approves it — only then does it appear on Browse.
+          Every new listing is held for admin review. Once approved, it appears on Browse.
         </p>
       </div>
 
@@ -76,7 +78,7 @@ function Sell() {
               <TableHead>Price</TableHead>
               <TableHead>Rent/wk</TableHead>
               <TableHead>Delivery</TableHead>
-              <TableHead>Platform cut</TableHead>
+              {FEES_ENABLED && <TableHead>Platform cut</TableHead>}
               <TableHead>Buyback</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -104,10 +106,12 @@ function Sell() {
                   <TableCell className="text-xs">
                     {[b.deliveryOptions.selfDeliver && "Self", b.deliveryOptions.courier && "Courier"].filter(Boolean).join(" · ") || "—"}
                   </TableCell>
-                  <TableCell className="text-xs">
+                  {FEES_ENABLED && <TableCell className="text-xs">
                     {b.status === "approved" ? `₹${cut ?? Math.round((b.price * commissions.sale) / 100)}` : <span className="text-muted-foreground">—</span>}
+                  </TableCell>}
+                  <TableCell className="text-muted-foreground">
+                    {b.buybackEnabled ? `₹${Math.round((b.price * b.buybackPercent) / 100)} · ${b.buybackWindowDays} days` : "—"}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">₹{buybackPrice(b.originalPrice, b.condition)}</TableCell>
                   <TableCell className="text-right">
                     <EditListingDialog id={b.id} />
                     <Button size="icon" variant="ghost" onClick={() => { removeBook(b.id); toast("Listing removed"); }}>
@@ -118,7 +122,7 @@ function Sell() {
               );
             })}
             {myBooks.length === 0 && (
-              <TableRow><TableCell colSpan={9} className="py-10 text-center text-muted-foreground">No listings yet. Add your first book.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={FEES_ENABLED ? 9 : 8} className="py-10 text-center text-muted-foreground">No listings yet. Add your first book.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -271,13 +275,13 @@ function NewListingDialog() {
   const [form, setForm] = useState({
     title: "", author: "", cover: "📖", price: "", originalPrice: "", rentPerWeek: "",
     condition: "Good" as Condition, category: "Fiction", description: "", buybackWindowDays: "30", deliveryDeadlineDays: "7",
-    buybackEnabled: false, buybackPercent: "50", buybackMinCondition: "Fair" as Condition, buybackNotes: "",
+    buybackEnabled: false, buybackAmount: "", buybackMinCondition: "Fair" as Condition, buybackNotes: "",
   });
   const [photos, setPhotos] = useState<string[]>([]);
   const [delivery, setDelivery] = useState<DeliveryOptions>({ selfDeliver: true, courier: false });
 
   const reset = () => {
-    setForm({ title: "", author: "", cover: "📖", price: "", originalPrice: "", rentPerWeek: "", condition: "Good", category: "Fiction", description: "", buybackWindowDays: "30", deliveryDeadlineDays: "7", buybackEnabled: false, buybackPercent: "50", buybackMinCondition: "Fair", buybackNotes: "" });
+    setForm({ title: "", author: "", cover: "📖", price: "", originalPrice: "", rentPerWeek: "", condition: "Good", category: "Fiction", description: "", buybackWindowDays: "30", deliveryDeadlineDays: "7", buybackEnabled: false, buybackAmount: "", buybackMinCondition: "Fair", buybackNotes: "" });
     setPhotos([]);
     setDelivery({ selfDeliver: true, courier: false });
   };
@@ -321,27 +325,30 @@ function NewListingDialog() {
             </Field>
           </div>
           <Field label="Delivery options"><DeliveryPicker value={delivery} onChange={setDelivery} /></Field>
-          <Field label="Buyback eligibility window (days)">
-            <Input
-              type="number" min={0} value={form.buybackWindowDays}
-              onChange={(e) => setForm({ ...form, buybackWindowDays: e.target.value })}
-            />
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              How many days after purchase a buyer can request buyback. They can still ask you to extend past this window.
-            </p>
-          </Field>
           <Field label="Buyback terms">
             <div className="grid gap-3 rounded-md border border-border p-3">
               <label className="flex items-center gap-2 text-sm">
                 <Checkbox checked={form.buybackEnabled} onCheckedChange={(checked) => setForm({ ...form, buybackEnabled: !!checked })} />
-                Offer buyback for this book
+                <span>Sell faster with Buyback</span>
               </label>
+              <p className="text-xs text-muted-foreground">Listings with Buyback sell faster.</p>
               {form.buybackEnabled && <>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Buyback percentage (25–75%)">
-                    <Input type="number" min={25} max={75} step={1} value={form.buybackPercent} onChange={(e) => setForm({ ...form, buybackPercent: e.target.value })} />
+                  <Field label="Buyback amount (₹)">
+                    <Input
+                      type="number" min={Number(form.price) * 0.25 || undefined} max={Number(form.price) * 0.75 || undefined}
+                      step="any" value={form.buybackAmount}
+                      onChange={(e) => setForm({ ...form, buybackAmount: e.target.value })}
+                    />
+                    <p className="text-[11px] text-muted-foreground">Must be 25%–75% of the listed price.</p>
                   </Field>
-                  <Field label="Minimum condition">
+                  <Field label="Return window">
+                    <Select value={form.buybackWindowDays} onValueChange={(v) => setForm({ ...form, buybackWindowDays: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{BUYBACK_WINDOWS.map((days) => <SelectItem key={days} value={String(days)}>{days} days</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Lowest accepted condition">
                     <Select value={form.buybackMinCondition} onValueChange={(v) => setForm({ ...form, buybackMinCondition: v as Condition })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>{CONDITIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
@@ -360,14 +367,14 @@ function NewListingDialog() {
               onChange={(e) => setForm({ ...form, deliveryDeadlineDays: e.target.value })}
             />
             <p className="mt-1 text-[11px] text-muted-foreground">
-              For escrow orders: how many days you have to hand over the book after payment.
+              How many days you have to arrange the handoff after an order.
             </p>
           </Field>
           <Field label="Description (optional)">
             <Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </Field>
           <p className="rounded-md bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
-            Heads up: your listing will be marked <b>Pending</b> until admin sets the platform cut and approves it.
+            Heads up: your listing will be marked <b>Pending</b> until an admin approves it.
           </p>
         </div>
         <DialogFooter>
@@ -379,13 +386,17 @@ function NewListingDialog() {
               }
               if (photos.length === 0) { toast.error("Add at least one photo of the book"); return; }
               if (!delivery.selfDeliver && !delivery.courier) { toast.error("Pick at least one delivery option"); return; }
-              const buybackPercent = Number(form.buybackPercent);
-              if (form.buybackEnabled && (!Number.isInteger(buybackPercent) || buybackPercent < 25 || buybackPercent > 75)) {
-                toast.error("Buyback percentage must be from 25 to 75"); return;
+              const price = Number(form.price);
+              const amount = Number(form.buybackAmount);
+              if (form.buybackEnabled && (
+                !Number.isFinite(price) || price <= 0 ||
+                !Number.isFinite(amount) || amount < price * 0.25 || amount > price * 0.75
+              )) {
+                toast.error("Buyback amount must be from 25% to 75% of the listed price"); return;
               }
               addBook({
                 title: form.title, author: form.author, cover: form.cover, photos,
-                price: Number(form.price), originalPrice: Number(form.originalPrice),
+                price, originalPrice: Number(form.originalPrice),
                 rentPerWeek: form.rentPerWeek ? Number(form.rentPerWeek) : undefined,
                 condition: form.condition, category: form.category,
                 sellerId: me.id, area: me.area,
@@ -393,11 +404,11 @@ function NewListingDialog() {
                 deliveryOptions: delivery,
                 buybackWindowDays: Number(form.buybackWindowDays) || 30,
                 buybackEnabled: form.buybackEnabled,
-                buybackPercent,
+                buybackPercent: form.buybackEnabled ? Math.round((amount / price) * 100) : 50,
                 buybackMinCondition: form.buybackMinCondition,
                 buybackNotes: form.buybackNotes || undefined,
                 deliveryDeadlineDays: Number(form.deliveryDeadlineDays) || 7,
-                chatActivated: false, chatFee: 0, sold: false,
+                chatActivated: !FEES_ENABLED, chatFee: 0, sold: false,
               });
               toast.success("Submitted for admin approval");
               setOpen(false);
@@ -419,7 +430,10 @@ function EditListingDialog({ id }: { id: string }) {
   const [rent, setRent] = useState(b.rentPerWeek ? String(b.rentPerWeek) : "");
   const [cond, setCond] = useState<Condition>(b.condition);
   const [buybackEnabled, setBuybackEnabled] = useState(b.buybackEnabled);
-  const [buybackPercent, setBuybackPercent] = useState(String(b.buybackPercent));
+  const [buybackAmount, setBuybackAmount] = useState(String(Math.round((b.price * b.buybackPercent) / 100)));
+  const [buybackWindowDays, setBuybackWindowDays] = useState(String(
+    BUYBACK_WINDOWS.includes(b.buybackWindowDays as (typeof BUYBACK_WINDOWS)[number]) ? b.buybackWindowDays : 30,
+  ));
   const [buybackMinCondition, setBuybackMinCondition] = useState<Condition>(b.buybackMinCondition);
   const [buybackNotes, setBuybackNotes] = useState(b.buybackNotes ?? "");
   const [photos, setPhotos] = useState<string[]>(b.photos);
@@ -461,14 +475,25 @@ function EditListingDialog({ id }: { id: string }) {
             <div className="grid gap-3 rounded-md border border-border p-3">
               <label className="flex items-center gap-2 text-sm">
                 <Checkbox checked={buybackEnabled} onCheckedChange={(checked) => setBuybackEnabled(!!checked)} />
-                Offer buyback for this book
+                <span>Sell faster with Buyback</span>
               </label>
+              <p className="text-xs text-muted-foreground">Listings with Buyback sell faster.</p>
               {buybackEnabled && <>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Buyback percentage (25–75%)">
-                    <Input type="number" min={25} max={75} step={1} value={buybackPercent} onChange={(e) => setBuybackPercent(e.target.value)} />
+                  <Field label="Buyback amount (₹)">
+                    <Input
+                      type="number" min={Number(price) * 0.25 || undefined} max={Number(price) * 0.75 || undefined}
+                      step="any" value={buybackAmount} onChange={(e) => setBuybackAmount(e.target.value)}
+                    />
+                    <p className="text-[11px] text-muted-foreground">Must be 25%–75% of the listed price.</p>
                   </Field>
-                  <Field label="Minimum condition">
+                  <Field label="Return window">
+                    <Select value={buybackWindowDays} onValueChange={setBuybackWindowDays}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{BUYBACK_WINDOWS.map((days) => <SelectItem key={days} value={String(days)}>{days} days</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Lowest accepted condition">
                     <Select value={buybackMinCondition} onValueChange={(v) => setBuybackMinCondition(v as Condition)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>{CONDITIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
@@ -487,11 +512,22 @@ function EditListingDialog({ id }: { id: string }) {
           <Button onClick={() => {
             if (photos.length === 0) { toast.error("At least one photo required"); return; }
             if (!delivery.selfDeliver && !delivery.courier) { toast.error("Pick a delivery option"); return; }
-            const percent = Number(buybackPercent);
-            if (buybackEnabled && (!Number.isInteger(percent) || percent < 25 || percent > 75)) {
-              toast.error("Buyback percentage must be from 25 to 75"); return;
+            const updatedPrice = Number(price);
+            const amount = Number(buybackAmount);
+            if (!Number.isFinite(updatedPrice) || updatedPrice <= 0) {
+              toast.error("Enter a valid listed price"); return;
             }
-            updateBook(id, { price: Number(price), rentPerWeek: rent ? Number(rent) : undefined, condition: cond, photos, deliveryOptions: delivery, buybackEnabled, buybackPercent: percent, buybackMinCondition, buybackNotes: buybackNotes || undefined });
+            if (buybackEnabled && (
+              !Number.isFinite(amount) || amount < updatedPrice * 0.25 || amount > updatedPrice * 0.75
+            )) {
+              toast.error("Buyback amount must be from 25% to 75% of the listed price"); return;
+            }
+            updateBook(id, {
+              price: updatedPrice, rentPerWeek: rent ? Number(rent) : undefined, condition: cond, photos,
+              deliveryOptions: delivery, buybackEnabled,
+              buybackPercent: buybackEnabled ? Math.round((amount / updatedPrice) * 100) : b.buybackPercent,
+              buybackWindowDays: Number(buybackWindowDays), buybackMinCondition, buybackNotes: buybackNotes || undefined,
+            });
             toast.success("Listing updated");
             setOpen(false);
           }}>Save</Button>

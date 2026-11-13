@@ -35,15 +35,15 @@ function TermsPage() {
           <ul className="list-disc space-y-1 pl-6">
             <li>You're responsible for keeping your login details safe.</li>
             <li>You must give accurate information about yourself, your listings, and your location.</li>
-            <li>We may suspend or block accounts that break these rules — including spamming, sharing contact details to avoid platform fees, posting fake listings, or abusive behavior.</li>
+            <li>We may suspend or block accounts that break these rules — including spamming, sharing personal contact details in chat, posting fake listings, or abusive behavior.</li>
           </ul>
         </Section>
 
         <Section n="4" title="Buying and selling">
           <ul className="list-disc space-y-1 pl-6">
             <li>Sellers set their own prices and describe their own items honestly (title, author, condition).</li>
-            <li>Book Ledger charges a commission on every sale, rental, buyback, and notes purchase. Current rates are shown to sellers before they list an item.</li>
-            <li>Payments are processed through our payment partner. Sellers receive their share (price minus commission) according to our payout schedule.</li>
+            <li>Book Ledger connects buyers and sellers. Buyers and sellers arrange payment directly with each other.</li>
+            <li>Inspect the book and meet in a public place. Book Ledger does not collect or hold payment for marketplace orders.</li>
           </ul>
         </Section>
 
@@ -64,14 +64,13 @@ function TermsPage() {
 
         <Section n="7" title="Buybacks">
           <ul className="list-disc space-y-1 pl-6">
-            <li>Book Ledger may buy back books it previously sold, at 50% of the original price, adjusted for the book's current condition.</li>
-            <li>Buyback offers are calculated automatically and shown before you accept.</li>
+            <li>Sellers may enable buyback on a listing and set its amount, return window, and minimum accepted condition.</li>
           </ul>
         </Section>
 
         <Section n="8" title="Chat">
           <ul className="list-disc space-y-1 pl-6">
-            <li>Messaging between buyers and sellers is provided so you can coordinate a purchase, not to move the transaction off-platform.</li>
+            <li>Messaging between buyers and sellers is provided so you can coordinate payment and handoff directly.</li>
             <li>Sharing personal contact details in chat is not allowed and may result in your account being restricted.</li>
             <li>Book Ledger does not offer in-app calling — all coordination happens in chat.</li>
           </ul>
@@ -82,7 +81,7 @@ function TermsPage() {
           <p>You may not:</p>
           <ul className="list-disc space-y-1 pl-6">
             <li>List stolen, counterfeit, or illegal items</li>
-            <li>Attempt to avoid platform commission by arranging payment outside the app</li>
+            <li>Misrepresent a listing's condition or agreed terms</li>
             <li>Harass, threaten, or spam other users</li>
             <li>Create multiple accounts to get around a block</li>
           </ul>

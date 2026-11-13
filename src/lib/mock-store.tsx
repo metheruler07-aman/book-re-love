@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { FEES_ENABLED, PAYMENTS_ENABLED } from "@/lib/feature-flags";
 
 /* =========================================================
  * Book Ledger data layer — Supabase-backed.
@@ -818,9 +819,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return t ? t.messages.length : 0;
     },
     activateListingChat: async (bookId) => {
-      await supabase.from("books")
-        .update({ chat_activated: true, chat_paid_at: new Date().toISOString() })
-        .eq("id", bookId);
+      const { error } = await supabase.from("books").update({
+        chat_activated: true,
+        ...(FEES_ENABLED ? { chat_paid_at: new Date().toISOString() } : {}),
+      }).eq("id", bookId);
+      if (error) throw error;
       await refresh();
     },
     markBookSold: async (bookId, sold) => {
@@ -906,7 +909,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         buyback_min_condition: b.buybackMinCondition,
         buyback_notes: b.buybackNotes ?? null,
         delivery_deadline_days: b.deliveryDeadlineDays,
-        chat_fee: b.chatFee || platformSettings.defaultChatFee,
+        chat_fee: FEES_ENABLED ? (b.chatFee || platformSettings.defaultChatFee) : 0,
+        chat_activated: b.chatActivated,
       }).select(BOOK_LIST_COLS).single();
       if (error) throw error;
       if (data) setBooks((cur) => [toBook(data as unknown as BookRow), ...cur]);
@@ -933,7 +937,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     removeBook: async (id) => { await supabase.from("books").update({ removed: true }).eq("id", id); await refresh(); },
     approveBook: async (id, pct) => {
-      await supabase.from("books").update({ status: "approved", rejection_note: null, commission_override: pct }).eq("id", id);
+      await supabase.from("books").update({
+        status: "approved", rejection_note: null, commission_override: FEES_ENABLED ? pct : null,
+      }).eq("id", id);
       await refresh();
     },
     rejectBook: async (id, note) => {
@@ -951,7 +957,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await refresh();
     },
     approveNote: async (id, pct) => {
-      await supabase.from("notes").update({ status: "approved", rejection_note: null, commission_override: pct }).eq("id", id);
+      await supabase.from("notes").update({
+        status: "approved", rejection_note: null, commission_override: FEES_ENABLED ? pct : null,
+      }).eq("id", id);
       await refresh();
     },
     rejectNote: async (id, note) => {
@@ -1075,20 +1083,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!currentUserId) throw new Error("Sign in required");
       const book = books.find((b) => b.id === input.bookId);
       if (!book) throw new Error("Book not found");
+      const settlement: Settlement = PAYMENTS_ENABLED ? input.settlement : "direct";
       const { data, error } = await supabase.from("orders").insert({
         buyer_id: currentUserId, seller_id: book.sellerId, book_id: book.id,
         kind: input.kind, rental_weeks: input.rentalWeeks ?? null,
-        amount: input.settlement === "direct" ? 0 : input.amount,
+        amount: settlement === "direct" ? 0 : input.amount,
         payment_method: input.paymentMethod,
         delivery_mode: input.deliveryMode,
-        settlement: input.settlement,
+        settlement,
         buyback_terms: {
           enabled: book.buybackEnabled,
           percent: book.buybackPercent,
           min_condition: book.buybackMinCondition,
           notes: book.buybackNotes ?? null,
         },
-        ...(input.settlement === "direct" ? { status: "arranged_direct" as const } : {}),
+        ...(settlement === "direct" ? { status: "arranged_direct" as const } : {}),
       }).select("*").single();
       if (error || !data) throw error ?? new Error("Order failed");
       const row = data as {
@@ -1102,7 +1111,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         kind: input.kind, rentalWeeks: row.rental_weeks ?? undefined, amount: Number(row.amount),
         paymentMethod: row.payment_method, deliveryMode: row.delivery_mode,
         handoffCode: row.handoff_code ?? undefined, status: row.status, createdAt: row.created_at,
-        notForResale: false, settlement: input.settlement,
+        notForResale: false, settlement,
         buybackTerms: parseBuybackTerms(row.buyback_terms),
       };
       await loadPrivate(currentUserId);

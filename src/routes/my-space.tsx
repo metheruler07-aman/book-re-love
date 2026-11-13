@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { PAYMENTS_ENABLED } from "@/lib/feature-flags";
 
 export const Route = createFileRoute("/my-space")({
   head: () => ({
@@ -228,7 +229,10 @@ function OrderRow({ order, viewer }: { order: Order; viewer: "buyer" | "seller" 
         <div>
           <div className="font-medium">{book.title}</div>
           <div className="text-xs text-muted-foreground">
-            {viewer === "buyer" ? "From" : "To"} {other?.name ?? "—"} · ₹{order.amount} · {order.paymentMethod.toUpperCase()}
+            {viewer === "buyer" ? "From" : "To"} {other?.name ?? "—"}
+            {order.settlement === "direct" || !PAYMENTS_ENABLED
+              ? " · Payment arranged directly"
+              : ` · ₹${order.amount} · ${order.paymentMethod.toUpperCase()}`}
           </div>
         </div>
       </div>
@@ -239,8 +243,8 @@ function OrderRow({ order, viewer }: { order: Order; viewer: "buyer" | "seller" 
 
 function OrderStatusBadge({ status }: { status: Order["status"] }) {
   const map: Record<Order["status"], { label: string; cls: string }> = {
-    awaiting_handoff:  { label: "Paid — Held",         cls: "bg-primary/10 text-primary border-primary/30" },
-    awaiting_delivery: { label: "Paid — Held",         cls: "bg-primary/10 text-primary border-primary/30" },
+    awaiting_handoff:  { label: "Awaiting handoff",    cls: "bg-primary/10 text-primary border-primary/30" },
+    awaiting_delivery: { label: "Awaiting delivery",   cls: "bg-primary/10 text-primary border-primary/30" },
     delivered:         { label: "Delivered",           cls: "bg-accent/15 text-accent border-accent/30" },
     completed:         { label: "Completed",           cls: "bg-secondary text-secondary-foreground" },
     overdue_review:    { label: "Overdue — Review",    cls: "bg-destructive/10 text-destructive border-destructive/30" },

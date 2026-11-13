@@ -27,7 +27,7 @@ function PrivacyPage() {
           <ul className="list-disc space-y-1 pl-6">
             <li><b className="text-foreground">Account info:</b> name, email or phone number, area/location, and (for sellers) delivery radius</li>
             <li><b className="text-foreground">Listings:</b> books or notes you list, prices, condition, photos</li>
-            <li><b className="text-foreground">Transactions:</b> purchases, rentals, buybacks, and payment confirmations</li>
+            <li><b className="text-foreground">Orders:</b> purchases, rentals, buybacks, and order status updates</li>
             <li><b className="text-foreground">Messages:</b> chat messages between buyers and sellers, so we can moderate for policy violations (like shared phone numbers)</li>
             <li><b className="text-foreground">Usage data:</b> basic technical info like device type and app usage, to fix bugs and improve the app</li>
           </ul>
@@ -35,9 +35,9 @@ function PrivacyPage() {
 
         <Section n="2" title="How we use it">
           <ul className="list-disc space-y-1 pl-6">
-            <li>To run the marketplace: show listings, process orders, calculate payouts and commission</li>
+            <li>To run the marketplace: show listings, record orders, and coordinate handoffs</li>
             <li>To calculate delivery options based on your area and a seller's self-delivery radius</li>
-            <li>To detect and prevent spam, fraud, or attempts to bypass platform fees</li>
+            <li>To detect and prevent spam or fraud</li>
             <li>To contact you about your orders or account</li>
           </ul>
         </Section>
@@ -51,7 +51,7 @@ function PrivacyPage() {
 
         <Section n="4" title="Who we share data with">
           <ul className="list-disc space-y-1 pl-6">
-            <li><b className="text-foreground">Payment processor</b> (e.g. Razorpay), to process payments and payouts — they receive only what's needed to complete a transaction.</li>
+            <li>Marketplace payments are arranged directly between buyers and sellers; Book Ledger does not process or hold those payments.</li>
             <li><b className="text-foreground">Delivery/courier partners</b>, for orders that ship beyond a seller's self-delivery range.</li>
             <li><b className="text-foreground">Law enforcement</b>, only if legally required.</li>
           </ul>

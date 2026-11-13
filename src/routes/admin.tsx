@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Shield, Ban, Trash2, Percent, Check, X, MessageSquare, CheckCircle2 } from "lucide-react";
 import { useCurrentUser, useStore, type Commissions } from "@/lib/mock-store";
+import { FEES_ENABLED } from "@/lib/feature-flags";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
       { title: "Admin — Book Ledger" },
-      { name: "description", content: "Admin controls for approvals, commissions, listings, queries, and accounts." },
+      { name: "description", content: "Admin controls for approvals, listings, queries, and accounts." },
     ],
   }),
   component: Admin,
@@ -45,7 +46,7 @@ function Admin() {
           <Shield className="h-4 w-4" /><span className="text-xs uppercase tracking-widest">Admin console</span>
         </div>
         <h1 className="mt-2 font-display text-4xl">Marketplace controls</h1>
-        <p className="mt-1 text-muted-foreground">Approve listings, fix each book's cut, moderate accounts, and answer queries.</p>
+        <p className="mt-1 text-muted-foreground">Approve listings, moderate accounts, and answer queries.</p>
       </header>
 
       <Tabs defaultValue="approvals">
@@ -53,7 +54,7 @@ function Admin() {
           <TabsTrigger value="approvals">
             Approvals {pendingCount > 0 && <Badge variant="destructive" className="ml-2">{pendingCount}</Badge>}
           </TabsTrigger>
-          <TabsTrigger value="commissions">Commissions</TabsTrigger>
+          {FEES_ENABLED && <TabsTrigger value="commissions">Commissions</TabsTrigger>}
           <TabsTrigger value="listings">Listings</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="queries">
@@ -62,7 +63,7 @@ function Admin() {
         </TabsList>
 
         <TabsContent value="approvals" className="mt-6"><ApprovalsPanel /></TabsContent>
-        <TabsContent value="commissions" className="mt-6"><CommissionsPanel /></TabsContent>
+        {FEES_ENABLED && <TabsContent value="commissions" className="mt-6"><CommissionsPanel /></TabsContent>}
         <TabsContent value="listings" className="mt-6"><ListingsPanel /></TabsContent>
         <TabsContent value="users" className="mt-6"><UsersPanel /></TabsContent>
         <TabsContent value="queries" className="mt-6"><QueriesPanel /></TabsContent>
@@ -72,7 +73,7 @@ function Admin() {
 }
 
 function ApprovalsPanel() {
-  const { books, notes, users, commissions, approveBook, rejectBook, approveNote, rejectNote } = useStore();
+  const { books, notes, users, approveBook, rejectBook, approveNote, rejectNote } = useStore();
   const pendingBooks = books.filter((b) => b.status === "pending" && !b.removed);
   const pendingNotes = notes.filter((n) => n.status === "pending" && !n.removed);
 
@@ -80,7 +81,7 @@ function ApprovalsPanel() {
     <div className="space-y-10">
       <section>
         <h2 className="font-display text-2xl">Pending book listings</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Type the exact ₹ commission for each listing, then approve. Rejected listings stay hidden.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Review each listing and approve or reject it.</p>
         <div className="mt-4 space-y-3">
           {pendingBooks.length === 0 && <EmptyRow label="No books waiting for approval." />}
           {pendingBooks.map((b) => (
@@ -88,7 +89,8 @@ function ApprovalsPanel() {
               key={b.id}
               book={b}
               sellerName={users.find((u) => u.id === b.sellerId)?.name ?? "Unknown"}
-              onApprove={(cut) => { approveBook(b.id, cut); toast.success(`Approved "${b.title}" at ₹${cut}`); }}
+              requireCommission={FEES_ENABLED}
+              onApprove={(cut) => { approveBook(b.id, cut); toast.success(`Approved "${b.title}"`); }}
               onReject={(note) => { rejectBook(b.id, note); toast(`Rejected "${b.title}"`); }}
             />
           ))}
@@ -104,7 +106,8 @@ function ApprovalsPanel() {
               key={n.id}
               note={n}
               sellerName={users.find((u) => u.id === n.sellerId)?.name ?? "Unknown"}
-              onApprove={(cut) => { approveNote(n.id, cut); toast.success(`Approved "${n.title}" at ₹${cut}`); }}
+              requireCommission={FEES_ENABLED}
+              onApprove={(cut) => { approveNote(n.id, cut); toast.success(`Approved "${n.title}"`); }}
               onReject={(note) => { rejectNote(n.id, note); toast(`Rejected "${n.title}"`); }}
             />
           ))}
@@ -118,9 +121,10 @@ function EmptyRow({ label }: { label: string }) {
   return <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{label}</div>;
 }
 
-function PendingBookRow({ book, sellerName, onApprove, onReject }: {
+function PendingBookRow({ book, sellerName, requireCommission, onApprove, onReject }: {
   book: { id: string; title: string; author: string; cover: string; price: number; condition: string; description?: string };
   sellerName: string;
+  requireCommission: boolean;
   onApprove: (cut: number) => void;
   onReject: (note?: string) => void;
 }) {
@@ -128,7 +132,7 @@ function PendingBookRow({ book, sellerName, onApprove, onReject }: {
   const [rejectNote, setRejectNote] = useState("");
   const [showReject, setShowReject] = useState(false);
   const cutNum = Number(cut);
-  const valid = cut !== "" && !Number.isNaN(cutNum) && cutNum >= 0 && cutNum <= book.price;
+  const valid = !requireCommission || (cut !== "" && !Number.isNaN(cutNum) && cutNum >= 0 && cutNum <= book.price);
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -141,17 +145,19 @@ function PendingBookRow({ book, sellerName, onApprove, onReject }: {
         </div>
       </div>
       <div className="mt-4 flex flex-wrap items-end gap-3">
-        <div className="grid gap-1.5">
-          <Label className="text-xs">Commission amount (₹)</Label>
-          <div className="relative w-36">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₹</span>
-            <Input type="number" min={0} max={book.price} placeholder="0" value={cut} onChange={(e) => setCut(e.target.value)} className="pl-7" />
+        {requireCommission && (
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Commission amount (₹)</Label>
+            <div className="relative w-36">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₹</span>
+              <Input type="number" min={0} max={book.price} placeholder="0" value={cut} onChange={(e) => setCut(e.target.value)} className="pl-7" />
+            </div>
           </div>
-        </div>
+        )}
         <Button
           disabled={!valid}
           className="bg-accent text-accent-foreground hover:bg-accent/90"
-          onClick={() => onApprove(cutNum)}
+          onClick={() => onApprove(requireCommission ? cutNum : 0)}
         >
           <Check className="mr-2 h-4 w-4" /> Approve & publish
         </Button>
@@ -171,15 +177,16 @@ function PendingBookRow({ book, sellerName, onApprove, onReject }: {
   );
 }
 
-function PendingNoteRow({ note, sellerName, onApprove, onReject }: {
+function PendingNoteRow({ note, sellerName, requireCommission, onApprove, onReject }: {
   note: { id: string; title: string; course: string; price: number; pages: number; isDigital: boolean };
   sellerName: string;
+  requireCommission: boolean;
   onApprove: (cut: number) => void;
   onReject: (note?: string) => void;
 }) {
   const [cut, setCut] = useState<string>("");
   const cutNum = Number(cut);
-  const valid = cut !== "" && !Number.isNaN(cutNum) && cutNum >= 0 && cutNum <= note.price;
+  const valid = !requireCommission || (cut !== "" && !Number.isNaN(cutNum) && cutNum >= 0 && cutNum <= note.price);
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -189,11 +196,11 @@ function PendingNoteRow({ note, sellerName, onApprove, onReject }: {
           <div className="text-xs text-muted-foreground">{note.course} · {note.pages} pages · {note.isDigital ? "Online PDF" : "Printed"} · seller {sellerName} · ₹{note.price}</div>
         </div>
         <div className="flex flex-wrap items-end gap-2">
-          <div className="relative w-32">
+          {requireCommission && <div className="relative w-32">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₹</span>
             <Input type="number" min={0} max={note.price} placeholder="0" value={cut} onChange={(e) => setCut(e.target.value)} className="pl-7" />
-          </div>
-          <Button disabled={!valid} size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => onApprove(cutNum)}>
+          </div>}
+          <Button disabled={!valid} size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => onApprove(requireCommission ? cutNum : 0)}>
             <Check className="mr-2 h-3 w-3" /> Approve
           </Button>
           <Button size="sm" variant="ghost" onClick={() => onReject()}>

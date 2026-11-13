@@ -44,10 +44,10 @@ function Home() {
   const heroBooks = books.filter((b) => !b.removed && b.status === "approved").slice(0, 4);
 
   const trustBadges = [
-    { icon: ShieldCheck, title: "Payment held safely", body: "Your money stays protected until you confirm you've received the book." },
+    { icon: ShieldCheck, title: "Direct payments", body: "Book Ledger connects buyers and sellers. You arrange payment directly. Inspect the book and meet in a public place." },
     { icon: BadgeCheck, title: "Verified sellers", body: "Every seller signs in with a verified phone number or Google account." },
     { icon: KeyRound, title: "Confirmed handoff", body: "A one-time code confirms the book actually changed hands." },
-    { icon: RefreshCw, title: "Fair buyback", body: "Sell it back anytime for half the price, based on condition." },
+    { icon: RefreshCw, title: "Optional buyback", body: "Some listings include a buyback offer with clear terms." },
   ];
 
   return (
@@ -65,7 +65,7 @@ function Home() {
             </h1>
             <p className="mt-6 max-w-xl text-lg text-muted-foreground">
               Buy pre-loved books, rent by the week, sell class notes, or list what's on your shelf.
-              Book Ledger connects readers by neighborhood — with an honest buyback when you're done.
+              Book Ledger connects readers by neighborhood, with optional buyback on participating listings.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">

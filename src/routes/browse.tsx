@@ -81,7 +81,7 @@ function Browse() {
         points={[
           "Every listing is reviewed and approved by an admin before it appears here.",
           "Sellers deliver within their own radius; beyond it, courier is arranged and paid by the buyer.",
-          "Pay via the app to hold funds until handoff, or pay the seller directly with no escrow.",
+          "Book Ledger connects buyers and sellers. You arrange payment directly. Inspect the book and meet in a public place.",
           "Sold copies disappear from browsing — buyer and seller keep them in My Space.",
         ]}
       />

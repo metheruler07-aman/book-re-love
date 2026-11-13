@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
+import { PAYMENTS_ENABLED } from "@/lib/feature-flags";
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -36,7 +37,11 @@ function Account() {
   if (!signedIn) return null;
 
   const save = () => {
-    updateUser(me.id, { area, radiusKm: radius, shipsBeyondRadius: ships, paymentMethods: pm });
+    const paymentMethods = PAYMENTS_ENABLED ? pm : { ...pm, card: false, wallet: false };
+    updateUser(me.id, {
+      area, radiusKm: radius, shipsBeyondRadius: ships,
+      paymentMethods,
+    });
     toast.success("Preferences saved");
   };
 
@@ -85,17 +90,14 @@ function Account() {
           <CreditCard className="h-4 w-4" /><h2 className="font-display text-xl">Payment methods you accept</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          Buyers see these on your listings. Platform commission is deducted automatically.
+          Buyers see these on your listings to coordinate payment directly with you.
         </p>
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <MethodRow icon={QrCode} label="UPI / QR" desc="Instant online transfer" checked={pm.upi} onChange={(v) => setPm({ ...pm, upi: v })} />
-          <MethodRow icon={CreditCard} label="Card / net-banking" desc="Visa, Mastercard, RuPay" checked={pm.card} onChange={(v) => setPm({ ...pm, card: v })} />
-          <MethodRow icon={Wallet} label="Wallet" desc="Paytm, PhonePe, GPay balance" checked={pm.wallet} onChange={(v) => setPm({ ...pm, wallet: v })} />
+          {PAYMENTS_ENABLED && <MethodRow icon={CreditCard} label="Card / net-banking" desc="Visa, Mastercard, RuPay" checked={pm.card} onChange={(v) => setPm({ ...pm, card: v })} />}
+          {PAYMENTS_ENABLED && <MethodRow icon={Wallet} label="Wallet" desc="Paytm, PhonePe, GPay balance" checked={pm.wallet} onChange={(v) => setPm({ ...pm, wallet: v })} />}
           <MethodRow icon={Banknote} label="Cash on delivery" desc="Buyer pays at handoff" checked={pm.cod} onChange={(v) => setPm({ ...pm, cod: v })} />
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">
-          Note: even for COD, the platform commission applies to every completed transaction.
-        </p>
       </section>
 
       <div className="mt-6">

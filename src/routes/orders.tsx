@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ChatDialog } from "@/components/chat-dialog";
+import { PAYMENTS_ENABLED } from "@/lib/feature-flags";
 
 export const Route = createFileRoute("/orders")({
   head: () => ({
@@ -82,7 +83,10 @@ function OrderCard({ order, viewer }: { order: Order; viewer: "buyer" | "seller"
           <div>
             <div className="font-display text-lg leading-tight">{book.title}</div>
             <div className="text-xs text-muted-foreground">
-              {order.kind === "rent" ? `Rent · ${order.rentalWeeks} wk` : "Purchase"} · ₹{order.amount} · {order.paymentMethod.toUpperCase()}
+              {order.kind === "rent" ? `Rent · ${order.rentalWeeks} wk` : "Purchase"}
+              {order.settlement === "direct" || !PAYMENTS_ENABLED
+                ? " · Payment arranged directly"
+                : ` · ₹${order.amount} · ${order.paymentMethod.toUpperCase()}`}
             </div>
             <div className="text-xs text-muted-foreground">
               {viewer === "buyer" ? "Seller" : "Buyer"}: {other.name} · Order #{order.id.slice(-4)}

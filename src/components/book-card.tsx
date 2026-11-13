@@ -29,6 +29,11 @@ export function BookCard({ book }: { book: Book }) {
       <div className="flex flex-1 flex-col gap-1 p-4">
         <div className="font-display text-base leading-tight text-foreground">{book.title}</div>
         <div className="text-xs text-muted-foreground">{book.author}</div>
+        {book.buybackEnabled && (
+          <div className="text-[11px] text-accent">
+            Buyback ₹{Math.round((book.price * book.buybackPercent) / 100)} · {book.buybackWindowDays} days
+          </div>
+        )}
         <div className="mt-auto flex items-end justify-between pt-3">
           <div>
             <div className="font-semibold text-foreground">₹{book.price}</div>

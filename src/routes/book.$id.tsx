@@ -2,7 +2,8 @@ import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-ro
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, MapPin, ShoppingBag, Repeat, HandCoins, Truck, MessageCircle, CreditCard, QrCode, Wallet, Banknote, Clock, XCircle, Percent, Handshake, Lock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { buybackPrice, loadListingPhotos, makeThumb, updateBookThumb, useCurrentUser, useStore, type DeliveryMode, type PaymentKey, type Settlement } from "@/lib/mock-store";
+import { loadListingPhotos, makeThumb, updateBookThumb, useCurrentUser, useStore, type DeliveryMode, type PaymentKey, type Settlement } from "@/lib/mock-store";
+import { FEES_ENABLED, PAYMENTS_ENABLED } from "@/lib/feature-flags";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -46,7 +47,7 @@ function BookDetail() {
   const book = books.find((b) => b.id === id && !b.removed);
   if (!book) throw notFound();
   const seller = users.find((u) => u.id === book.sellerId)!;
-  const buyback = buybackPrice(book.originalPrice, book.condition);
+  const buybackAmount = Math.round((book.price * book.buybackPercent) / 100);
   // Admin sets an exact rupee commission per listing; category % is only a fallback.
   const commissionOverride = commissions.perListing[book.id];
   const platformCut = commissionOverride ?? Math.round((book.price * commissions.sale) / 100);
@@ -69,7 +70,7 @@ function BookDetail() {
   };
 
   const paymentBadges = (Object.keys(PAY_META) as PaymentKey[])
-    .filter((k) => seller.paymentMethods[k])
+    .filter((k) => seller.paymentMethods[k] && (PAYMENTS_ENABLED || (k !== "card" && k !== "wallet")))
     .map((k) => ({ key: k, ...PAY_META[k] }));
 
   // Full-size photos live outside the browse payload; fetch them for this listing only.
@@ -158,9 +159,9 @@ function BookDetail() {
             )}
           </div>
 
-          <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+          {FEES_ENABLED && <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
             <Percent className="h-3 w-3" /> Platform fee: ₹{platformCut} on sale
-          </div>
+          </div>}
 
           <div className="mt-4">
             <ShareButton title={book.title} text={`${book.title} by ${book.author} on Book Ledger`} />
@@ -174,7 +175,11 @@ function BookDetail() {
           <div className="mt-6">
             <div className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">Payment accepted</div>
             <div className="flex flex-wrap gap-2">
-              {paymentBadges.length === 0 && <span className="text-xs text-muted-foreground">Seller hasn't set methods yet.</span>}
+              {paymentBadges.length === 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {PAYMENTS_ENABLED ? "Seller hasn't set methods yet." : "Arrange payment directly with the seller."}
+                </span>
+              )}
               {paymentBadges.map((p) => (
                 <span key={p.label} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-2.5 py-1 text-xs">
                   <p.icon className="h-3.5 w-3.5" /> {p.label}
@@ -195,7 +200,7 @@ function BookDetail() {
               {book.deliveryOptions.courier    && <Badge variant="secondary" className="gap-1"><Truck className="h-3 w-3" /> Courier (arranged in chat, buyer pays)</Badge>}
             </div>
             <div className="mt-2 text-xs text-muted-foreground">
-              Escrow orders must be delivered within {book.deliveryDeadlineDays} days.
+              Arrange the handoff within {book.deliveryDeadlineDays} days.
             </div>
           </div>
 
@@ -205,6 +210,22 @@ function BookDetail() {
                 <div className="flex items-center gap-2 text-sm text-accent">
                   <CheckCircle2 className="h-4 w-4" /> Chat is active for this listing.
                 </div>
+              ) : !FEES_ENABLED ? (
+                <>
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <MessageCircle className="h-4 w-4 text-primary" /> Chat is free for this listing
+                  </div>
+                  <Button className="mt-3" onClick={async () => {
+                    try {
+                      await activateListingChat(book.id);
+                      toast.success("Chat activated", { description: "Buyers can now message you about this listing." });
+                    } catch {
+                      toast.error("Could not activate chat. Please try again.");
+                    }
+                  }}>
+                    Activate chat
+                  </Button>
+                </>
               ) : (
                 <>
                   <div className="flex items-center gap-2 text-sm font-medium">
@@ -266,15 +287,15 @@ function BookDetail() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-border bg-card p-4">
+            {book.buybackEnabled && <div className="rounded-lg border border-border bg-card p-4">
               <div className="flex items-center gap-2 text-sm font-medium">
-                <HandCoins className="h-4 w-4 text-accent" /> Buyback estimate
+                <HandCoins className="h-4 w-4 text-accent" /> Buyback ₹{buybackAmount} · {book.buybackWindowDays} days
               </div>
-              <div className="mt-2 font-display text-2xl">₹{buyback}</div>
               <div className="text-xs text-muted-foreground">
-                50% of ₹{book.originalPrice}, adjusted for {book.condition.toLowerCase()} condition.
+                Return condition: {book.buybackMinCondition} or better.
+                {book.buybackNotes && <span> {book.buybackNotes}</span>}
               </div>
-            </div>
+            </div>}
           </div>
         </div>
       </div>
@@ -291,18 +312,22 @@ function BookDetail() {
         }}
       />
 
-      <ActivateChatDialog
+      {FEES_ENABLED && <ActivateChatDialog
         open={activateOpen}
         onOpenChange={setActivateOpen}
         fee={chatFee}
         upiId={platformSettings.ownerUpiId}
         bookTitle={book.title}
         onPaid={async () => {
-          await activateListingChat(book.id);
-          setActivateOpen(false);
-          toast.success("Chat activated", { description: "Buyers can now message you about this listing." });
+          try {
+            await activateListingChat(book.id);
+            setActivateOpen(false);
+            toast.success("Chat activated", { description: "Buyers can now message you about this listing." });
+          } catch {
+            toast.error("Could not activate chat. Please try again.");
+          }
         }}
-      />
+      />}
 
       {checkoutKind && (
         <CheckoutDialog
@@ -317,7 +342,7 @@ function BookDetail() {
               bookId: book.id, kind: checkoutKind, rentalWeeks, amount, paymentMethod, deliveryMode, settlement,
             });
             setCheckoutKind(null);
-            if (settlement === "direct") {
+            if (!PAYMENTS_ENABLED || settlement === "direct") {
               await sendMessage(seller.id, `Hi ${seller.name} — I'd like to settle order ${order.id.slice(-4)} directly with you. Let's fix the amount and handover.`, book.id);
               toast.success("Marked as arranged directly", { description: "No platform payment collected — settle with the seller." });
               navigate({ to: "/orders" });
@@ -406,16 +431,18 @@ function CheckoutDialog({
   chatActivated: boolean;
   onConfirm: (v: { paymentMethod: PaymentKey; deliveryMode: DeliveryMode; rentalWeeks?: number; amount: number; settlement: Settlement }) => void;
 }) {
-  const availableMethods = (Object.keys(PAY_META) as PaymentKey[]).filter((k) => seller.paymentMethods[k]);
+  const availableMethods = (Object.keys(PAY_META) as PaymentKey[]).filter((k) =>
+    seller.paymentMethods[k] && (PAYMENTS_ENABLED || (k !== "card" && k !== "wallet")),
+  );
   const availableDelivery: DeliveryMode[] = [
     book.deliveryOptions.selfDeliver ? "self" : null,
     book.deliveryOptions.courier ? "courier" : null,
   ].filter(Boolean) as DeliveryMode[];
 
-  const [pay, setPay] = useState<PaymentKey | "">(availableMethods[0] ?? "");
+  const [pay, setPay] = useState<PaymentKey | "">(availableMethods[0] ?? (PAYMENTS_ENABLED ? "" : "cod"));
   const [mode, setMode] = useState<DeliveryMode | "">(availableDelivery[0] ?? "");
   const [weeks, setWeeks] = useState<number>(1);
-  const [settlement, setSettlement] = useState<Settlement>("escrow");
+  const [settlement, setSettlement] = useState<Settlement>(PAYMENTS_ENABLED ? "escrow" : "direct");
 
   const amount = useMemo(() => {
     if (kind === "buy") return book.price;
@@ -430,34 +457,40 @@ function CheckoutDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
-          <div className="grid gap-1.5">
-            <Label className="text-xs">How would you like to pay?</Label>
-            <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5" /> Seller's area: {seller.area || "not set"}
+          {PAYMENTS_ENABLED ? (
+            <div className="grid gap-1.5">
+              <Label className="text-xs">How would you like to pay?</Label>
+              <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5" /> Seller's area: {seller.area || "not set"}
+              </div>
+              <RadioGroup value={settlement} onValueChange={(v) => setSettlement(v as Settlement)} className="grid gap-2">
+                <label className="flex items-start gap-2 rounded-md border border-border p-3 text-sm">
+                  <RadioGroupItem value="escrow" />
+                  <div>
+                    <div className="font-medium">Pay via app (Razorpay escrow)</div>
+                    <div className="text-xs text-muted-foreground">
+                      Money is held until handoff is confirmed. Seller must deliver within {book.deliveryDeadlineDays} days.
+                    </div>
+                  </div>
+                </label>
+                <label className={`flex items-start gap-2 rounded-md border border-border p-3 text-sm ${chatActivated ? "" : "opacity-60"}`}>
+                  <RadioGroupItem value="direct" disabled={!chatActivated} />
+                  <div>
+                    <div className="font-medium">Pay directly to seller</div>
+                    <div className="text-xs text-muted-foreground">
+                      {chatActivated
+                        ? "Settled outside the app. No escrow tracking — marked \"Buyer & Seller Arranged Directly\"."
+                        : "Available once the seller activates chat for this listing."}
+                    </div>
+                  </div>
+                </label>
+              </RadioGroup>
             </div>
-            <RadioGroup value={settlement} onValueChange={(v) => setSettlement(v as Settlement)} className="grid gap-2">
-              <label className="flex items-start gap-2 rounded-md border border-border p-3 text-sm">
-                <RadioGroupItem value="escrow" />
-                <div>
-                  <div className="font-medium">Pay via app (Razorpay escrow)</div>
-                  <div className="text-xs text-muted-foreground">
-                    Money is held until handoff is confirmed. Seller must deliver within {book.deliveryDeadlineDays} days.
-                  </div>
-                </div>
-              </label>
-              <label className={`flex items-start gap-2 rounded-md border border-border p-3 text-sm ${chatActivated ? "" : "opacity-60"}`}>
-                <RadioGroupItem value="direct" disabled={!chatActivated} />
-                <div>
-                  <div className="font-medium">Pay directly to seller</div>
-                  <div className="text-xs text-muted-foreground">
-                    {chatActivated
-                      ? "Settled outside the app. No escrow tracking — marked \"Buyer & Seller Arranged Directly\"."
-                      : "Available once the seller activates chat for this listing."}
-                  </div>
-                </div>
-              </label>
-            </RadioGroup>
-          </div>
+          ) : (
+            <div className="rounded-md border border-border bg-secondary/60 p-3 text-sm text-muted-foreground">
+              Book Ledger connects buyers and sellers. You arrange payment directly. Inspect the book and meet in a public place.
+            </div>
+          )}
 
 
           {kind === "rent" && (
@@ -508,9 +541,11 @@ function CheckoutDialog({
           </div>
 
           <div className="grid gap-1.5">
-            <Label className="text-xs">Payment method (seller's accepted)</Label>
+            <Label className="text-xs">{PAYMENTS_ENABLED ? "Payment method (seller's accepted)" : "Payment method to arrange directly (optional)"}</Label>
             {availableMethods.length === 0 ? (
-              <div className="text-xs text-destructive">Seller hasn't set any payment methods.</div>
+              <div className="text-xs text-muted-foreground">
+                {PAYMENTS_ENABLED ? "Seller hasn't set any payment methods." : "Agree on a payment method directly with the seller."}
+              </div>
             ) : (
               <RadioGroup value={pay} onValueChange={(v) => setPay(v as PaymentKey)} className="grid grid-cols-2 gap-2">
                 {availableMethods.map((k) => {
@@ -539,8 +574,12 @@ function CheckoutDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button
             onClick={() => {
-              if (!pay || !mode) { toast.error("Pick delivery and payment"); return; }
-              onConfirm({ paymentMethod: pay, deliveryMode: mode, rentalWeeks: kind === "rent" ? weeks : undefined, amount, settlement });
+              if ((!pay && PAYMENTS_ENABLED) || !mode) { toast.error("Pick delivery and payment"); return; }
+              onConfirm({
+                paymentMethod: pay || "cod", deliveryMode: mode,
+                rentalWeeks: kind === "rent" ? weeks : undefined, amount,
+                settlement: PAYMENTS_ENABLED ? settlement : "direct",
+              });
             }}
           >
             {settlement === "direct" ? "Confirm direct deal" : "Place order"}

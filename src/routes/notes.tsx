@@ -166,7 +166,7 @@ function UploadNoteDialog() {
             <Switch checked={form.isDigital} onCheckedChange={(v) => setForm({ ...form, isDigital: v })} />
           </div>
           <p className="rounded-md bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
-            Notes go live once admin approves and sets the platform cut.
+            Notes go live once an admin approves them.
           </p>
         </div>
         <DialogFooter>
