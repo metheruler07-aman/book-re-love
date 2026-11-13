@@ -15,6 +15,7 @@ import { StoreProvider, ThemeProvider } from "@/lib/mock-store";
 import { SiteHeader, SiteFooter, MobileBottomNavigation } from "@/components/site-header";
 import { OfflineScreen } from "@/components/offline-screen";
 import { Toaster } from "@/components/ui/sonner";
+import { HOME_DESCRIPTION, HOME_TITLE, siteUrl } from "@/lib/seo";
 
 function NotFoundComponent() {
   return (
@@ -64,36 +65,40 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "Book Ledger — A neighborhood book marketplace" },
-      { name: "description", content: "Buy, sell, rent, and trade books with readers nearby. Sell your class notes. Request the titles you're hunting." },
-      { name: "author", content: "Book Ledger" },
-      { property: "og:title", content: "Book Ledger — A neighborhood book marketplace" },
-      { property: "og:description", content: "Buy, sell, rent, and trade books with readers nearby. Sell your class notes. Request the titles you're hunting." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Book Ledger — A neighborhood book marketplace" },
-      { name: "twitter:description", content: "Buy, sell, rent, and trade books with readers nearby. Sell your class notes. Request the titles you're hunting." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c120db8f-ffeb-4537-94db-39a27263039d/id-preview-b03b6634--fc9c769f-4f15-4770-88aa-3c4ee964e307.lovable.app-1784434931735.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c120db8f-ffeb-4537-94db-39a27263039d/id-preview-b03b6634--fc9c769f-4f15-4770-88aa-3c4ee964e307.lovable.app-1784434931735.png" },
-      { name: "theme-color", content: "#7a2e1e" },
-      { name: "apple-mobile-web-app-title", content: "BookLedger" },
-      { name: "apple-mobile-web-app-capable", content: "yes" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/book-ledger-icon.svg", type: "image/svg+xml" },
-      { rel: "apple-touch-icon", href: "/icon-192.png" },
-      { rel: "manifest", href: "/manifest.json" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" },
-    ],
-
-  }),
+  head: ({ matches }) => {
+    const pathname = matches[matches.length - 1]?.pathname ?? "/";
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+        { title: HOME_TITLE },
+        { name: "description", content: HOME_DESCRIPTION },
+        { name: "author", content: "Book Ledger" },
+        { property: "og:title", content: HOME_TITLE },
+        { property: "og:description", content: HOME_DESCRIPTION },
+        { property: "og:url", content: siteUrl(pathname) },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: HOME_TITLE },
+        { name: "twitter:description", content: HOME_DESCRIPTION },
+        { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c120db8f-ffeb-4537-94db-39a27263039d/id-preview-b03b6634--fc9c769f-4f15-4770-88aa-3c4ee964e307.lovable.app-1784434931735.png" },
+        { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c120db8f-ffeb-4537-94db-39a27263039d/id-preview-b03b6634--fc9c769f-4f15-4770-88aa-3c4ee964e307.lovable.app-1784434931735.png" },
+        { name: "theme-color", content: "#7a2e1e" },
+        { name: "apple-mobile-web-app-title", content: "BookLedger" },
+        { name: "apple-mobile-web-app-capable", content: "yes" },
+      ],
+      links: [
+        { rel: "stylesheet", href: appCss },
+        { rel: "icon", href: "/book-ledger-icon.svg", type: "image/svg+xml" },
+        { rel: "apple-touch-icon", href: "/icon-192.png" },
+        { rel: "manifest", href: "/manifest.json" },
+        { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+        { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" },
+        { rel: "canonical", href: siteUrl(pathname) },
+      ],
+    };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,

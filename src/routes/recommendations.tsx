@@ -8,14 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { pageSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/recommendations")({
-  head: () => ({
-    meta: [
-      { title: "Recommendations — Book Ledger" },
-      { name: "description", content: "Reader-submitted book recommendations. Like your favorites and signal you'd love to rent them." },
-    ],
-  }),
+  head: () =>
+    pageSeo(
+      "Reader book recommendations | Book Ledger",
+      "Discover books recommended by Book Ledger readers. Share favorites, read why others love them, and signal interest in renting a title.",
+      "/recommendations",
+    ),
   component: RecommendationsPage,
 });
 

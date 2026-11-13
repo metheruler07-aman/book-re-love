@@ -1,16 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { pageSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/terms")({
-  head: () => ({
-    meta: [
-      { title: "Terms of Service — Book Ledger" },
-      { name: "description", content: "The terms that govern your use of Book Ledger — buying, selling, renting, buybacks, notes, and chat." },
-      { property: "og:title", content: "Terms of Service — Book Ledger" },
-      { property: "og:description", content: "The terms that govern your use of Book Ledger." },
-      { property: "og:url", content: "/terms" },
-    ],
-    links: [{ rel: "canonical", href: "/terms" }],
-  }),
+  head: () =>
+    pageSeo(
+      "Terms of Service | Book Ledger",
+      "Review the Book Ledger Terms of Service for rules on accounts, listings, book sales and rentals, delivery, chat, and using the marketplace.",
+      "/terms",
+    ),
   component: TermsPage,
 });
 

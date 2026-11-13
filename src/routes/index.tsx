@@ -6,16 +6,32 @@ import { supabase } from "@/integrations/supabase/client";
 import { BookCard } from "@/components/book-card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { HOME_DESCRIPTION, HOME_TITLE, pageSeo, siteUrl } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
-    meta: [
-      { title: "Book Ledger — A neighborhood book marketplace" },
-      { name: "description", content: "Buy, sell, rent, and trade books with readers nearby. Sell your class notes. Request the titles you're hunting." },
-      { property: "og:title", content: "Book Ledger — A neighborhood book marketplace" },
-      { property: "og:description", content: "Buy, sell, rent, and trade books with readers nearby." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+    ...pageSeo(HOME_TITLE, HOME_DESCRIPTION, "/"),
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Book Ledger",
+          url: siteUrl("/"),
+          description: HOME_DESCRIPTION,
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Book Ledger",
+          url: siteUrl("/"),
+          logo: siteUrl("/book-ledger-icon.svg"),
+        }),
+      },
     ],
   }),
   component: Home,
@@ -125,6 +141,15 @@ function Home() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 pb-16 sm:px-6">
+        <h2 className="font-display text-3xl leading-tight sm:text-4xl">How Book Ledger works</h2>
+        <p className="mt-3 max-w-3xl text-muted-foreground">
+          Book Ledger is a neighborhood marketplace for pre-loved books and class notes. Browse listings near you,
+          choose a book to buy or rent, then contact the reader listing it to arrange payment and a safe handoff.
+          Readers can also list books and notes or request titles they want to find.
+        </p>
       </section>
 
       {/* Latest listings by category */}

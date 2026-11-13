@@ -11,14 +11,15 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { pageSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/notes")({
-  head: () => ({
-    meta: [
-      { title: "Class notes marketplace — Book Ledger" },
-      { name: "description", content: "Printed and online (PDF) class notes sold by students who already survived the semester." },
-    ],
-  }),
+  head: () =>
+    pageSeo(
+      "Class notes marketplace | Book Ledger",
+      "Explore printed and digital class notes shared by students. Find affordable study materials by course and buy notes from local learners.",
+      "/notes",
+    ),
   component: NotesPage,
 });
 

@@ -8,17 +8,18 @@ import { BookCard } from "@/components/book-card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { pageSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/browse")({
   validateSearch: (search: Record<string, unknown>): { category?: string } =>
     typeof search.category === "string" ? { category: search.category } : {},
 
-  head: () => ({
-    meta: [
-      { title: "Browse books — Book Ledger" },
-      { name: "description", content: "Browse pre-loved books listed by readers near you. Filter by condition, category, and area." },
-    ],
-  }),
+  head: () =>
+    pageSeo(
+      "Browse used books near you | Book Ledger",
+      "Browse used and pre-loved books listed by readers near you. Filter local books by category, condition, price, and area to find your next read.",
+      "/browse",
+    ),
   component: Browse,
 });
 

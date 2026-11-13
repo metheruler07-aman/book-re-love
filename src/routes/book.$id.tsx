@@ -14,14 +14,37 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ChatDialog } from "@/components/chat-dialog";
 import { ShareButton } from "@/components/share-button";
+import { supabase } from "@/integrations/supabase/client";
+import { pageSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/book/$id")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `Book — Book Ledger` },
-      { name: "description", content: `Listing details for book ${params.id} on Book Ledger.` },
-    ],
-  }),
+  loader: async ({ params }) => {
+    const { data, error } = await supabase
+      .from("books")
+      .select("title,area")
+      .eq("id", params.id)
+      .eq("status", "approved")
+      .eq("removed", false)
+      .eq("sold", false)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+  head: ({ params, loaderData }) => {
+    const title = loaderData?.title;
+    const area = loaderData?.area?.trim() || "your area";
+    return title
+      ? pageSeo(
+          `Used ${title} in ${area} | Book Ledger`,
+          `Find ${title} in ${area} on Book Ledger. Explore this pre-loved book listing and connect with a reader nearby.`,
+          `/book/${params.id}`,
+        )
+      : pageSeo(
+          "Used books near you | Book Ledger",
+          "Explore pre-loved book listings from readers near you on Book Ledger.",
+          `/book/${params.id}`,
+        );
+  },
   component: BookDetail,
   notFoundComponent: () => (
     <div className="mx-auto max-w-md p-16 text-center">

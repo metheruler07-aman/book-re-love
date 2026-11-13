@@ -1,16 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { pageSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/privacy")({
-  head: () => ({
-    meta: [
-      { title: "Privacy Policy — Book Ledger" },
-      { name: "description", content: "How Book Ledger collects, uses, and protects your data as a reader, seller, or buyer on the platform." },
-      { property: "og:title", content: "Privacy Policy — Book Ledger" },
-      { property: "og:description", content: "How Book Ledger collects, uses, and protects your data." },
-      { property: "og:url", content: "/privacy" },
-    ],
-    links: [{ rel: "canonical", href: "/privacy" }],
-  }),
+  head: () =>
+    pageSeo(
+      "Privacy Policy | Book Ledger",
+      "Read the Book Ledger Privacy Policy to learn what account, listing, order, and usage information we collect and how we use and protect it.",
+      "/privacy",
+    ),
   component: PrivacyPage,
 });
 

@@ -8,14 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { pageSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/community")({
-  head: () => ({
-    meta: [
-      { title: "Community board — Book Ledger" },
-      { name: "description", content: "Request the books you're hunting. Upvote requests so the community sees what people want most." },
-    ],
-  }),
+  head: () =>
+    pageSeo(
+      "Book requests community board | Book Ledger",
+      "Looking for a particular book? Browse reader requests, post a title you're hunting, and upvote books you'd like to find in your community.",
+      "/community",
+    ),
   component: Community,
 });
 
