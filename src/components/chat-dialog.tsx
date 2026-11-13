@@ -18,18 +18,20 @@ export function ChatDialog({
   open, onOpenChange, otherId, bookId,
 }: { open: boolean; onOpenChange: (v: boolean) => void; otherId: string; bookId?: string }) {
   const me = useCurrentUser();
-  const { users, books, threads, sendMessage, getThread, messageCountWith } = useStore();
+  const { users, books, threads, enquiries, sendMessage, getThread, messageCountWith } = useStore();
   const other = users.find((u) => u.id === otherId);
   const book = bookId ? books.find((b) => b.id === bookId) : undefined;
   const [text, setText] = useState("");
 
   // Live message updates only while this dialog is actually open.
-  useLiveTables(open ? ["messages"] : []);
+  useLiveTables(open ? ["messages", "enquiries"] : []);
 
 
   // ensure thread exists when opened
   useEffect(() => { if (open) getThread(otherId, bookId); }, [open, otherId, bookId, getThread]);
-  const thread = threads.find((t) => t.participants.includes(me.id) && t.participants.includes(otherId));
+  const thread = threads.find((t) =>
+    t.participants.includes(me.id) && t.participants.includes(otherId) && t.bookId === bookId,
+  );
   const scrollerRef = useRef<HTMLDivElement>(null);
   useEffect(() => { scrollerRef.current?.scrollTo({ top: 999999 }); }, [thread?.messages.length]);
 
@@ -37,16 +39,25 @@ export function ChatDialog({
   const remaining = Math.max(0, CHAT_HARD_LIMIT - used);
   const inGrace = used >= CHAT_MESSAGE_LIMIT && used < CHAT_HARD_LIMIT;
   const exhausted = used >= CHAT_HARD_LIMIT;
+  const hasAcceptedEnquiry = !!bookId && enquiries.some((enquiry) =>
+    enquiry.bookId === bookId && enquiry.status === "accepted" &&
+    ((enquiry.buyerId === me.id && enquiry.sellerId === otherId) ||
+      (enquiry.buyerId === otherId && enquiry.sellerId === me.id)),
+  );
   const closedBySale = !!book?.sold;
-  const locked = exhausted || closedBySale;
+  const locked = !hasAcceptedEnquiry || exhausted || closedBySale;
 
   const submit = async () => {
     if (!text.trim()) return;
     if (closedBySale) { toast.error("This book is sold — chat is closed."); return; }
     if (exhausted) { toast.error("Message limit reached for this conversation."); return; }
-    const { redacted } = await sendMessage(otherId, text.trim(), bookId);
-    if (redacted) toast.warning("Phone number blocked", { description: "Chats can't share contact details." });
-    setText("");
+    try {
+      const { redacted } = await sendMessage(otherId, text.trim(), bookId);
+      if (redacted) toast.warning("Phone number blocked", { description: "Chats can't share contact details." });
+      setText("");
+    } catch (error) {
+      toast.error("Could not send message", { description: error instanceof Error ? error.message : "Please try again." });
+    }
   };
 
   return (
@@ -72,11 +83,13 @@ export function ChatDialog({
           </div>
         </DialogHeader>
 
-        <div className="border-b border-border bg-accent/10 px-4 py-2 text-xs text-accent">
-          You have {CHAT_MESSAGE_LIMIT} messages — use them to discuss the address and method of dealing for this book.
-        </div>
+        {hasAcceptedEnquiry && (
+          <div className="border-b border-border bg-accent/10 px-4 py-2 text-xs text-accent">
+            Chat is free. You have {CHAT_MESSAGE_LIMIT} messages — use them to discuss the address and method of dealing for this book.
+          </div>
+        )}
 
-        <div ref={scrollerRef} className="h-80 space-y-2 overflow-y-auto bg-secondary/30 p-4">
+        {hasAcceptedEnquiry && <div ref={scrollerRef} className="h-80 space-y-2 overflow-y-auto bg-secondary/30 p-4">
           {(!thread || thread.messages.length === 0) && (
             <div className="mt-16 text-center text-sm text-muted-foreground">
               Say hi about the book. Keep it on-platform.
@@ -101,11 +114,13 @@ export function ChatDialog({
               </div>
             );
           })}
-        </div>
+        </div>}
 
         {locked ? (
           <div className="border-t border-border p-3 text-center text-xs text-muted-foreground">
-            {closedBySale
+            {!hasAcceptedEnquiry
+              ? "Chat opens after the seller accepts your enquiry"
+              : closedBySale
               ? "This book is marked sold — the chat for this listing is closed."
               : "You've used all messages for this conversation, including the grace buffer."}
           </div>

@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { BookOpen, ScrollText, Package, Handshake, MapPin, User as UserIcon, ShoppingBag, Wallet } from "lucide-react";
-import { useCurrentUser, useStore, type Order, type Book, type Note } from "@/lib/mock-store";
+import { useCurrentUser, useLiveTables, useStore, type Enquiry, type Order, type Book, type Note } from "@/lib/mock-store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +24,8 @@ export const Route = createFileRoute("/my-space")({
 
 function MySpace() {
   const me = useCurrentUser();
-  const { signedIn, books, notes, orders, updateUser } = useStore();
+  const { signedIn, books, notes, orders, enquiries, users, updateUser, respondEnquiry } = useStore();
+  useLiveTables(signedIn ? ["enquiries"] : []);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,6 +45,11 @@ function MySpace() {
   const myNotes = useMemo(() => notes.filter((n) => n.sellerId === me.id && !n.removed), [notes, me.id]);
   const purchases = useMemo(() => orders.filter((o) => o.buyerId === me.id), [orders, me.id]);
   const sales = useMemo(() => orders.filter((o) => o.sellerId === me.id), [orders, me.id]);
+  const sellerEnquiries = useMemo(
+    () => enquiries.filter((enquiry) => enquiry.sellerId === me.id),
+    [enquiries, me.id],
+  );
+  const pendingEnquiries = sellerEnquiries.filter((enquiry) => enquiry.status === "pending");
 
   if (!signedIn) return null;
 
@@ -79,6 +85,7 @@ function MySpace() {
           <TabsTrigger value="listings">My Listings ({myBooks.length + myNotes.length})</TabsTrigger>
           <TabsTrigger value="purchases">My Purchases ({purchases.length})</TabsTrigger>
           <TabsTrigger value="sales">My Sales ({sales.length})</TabsTrigger>
+          <TabsTrigger value="enquiries">Enquiries ({pendingEnquiries.length})</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
         </TabsList>
 
@@ -100,6 +107,26 @@ function MySpace() {
         <TabsContent value="sales" className="mt-6 grid gap-3">
           {sales.length === 0 && <Empty label="No sales yet." />}
           {sales.map((o) => <OrderRow key={o.id} order={o} viewer="seller" />)}
+        </TabsContent>
+
+        <TabsContent value="enquiries" className="mt-6 grid gap-3">
+          {sellerEnquiries.length === 0 && <Empty label="No book enquiries yet." />}
+          {sellerEnquiries.map((enquiry) => (
+            <EnquiryRow
+              key={enquiry.id}
+              enquiry={enquiry}
+              bookTitle={books.find((book) => book.id === enquiry.bookId)?.title ?? "Book listing"}
+              buyerName={users.find((user) => user.id === enquiry.buyerId)?.name ?? "Reader"}
+              onRespond={async (status) => {
+                try {
+                  await respondEnquiry(enquiry.id, status);
+                  toast.success(status === "accepted" ? "Enquiry accepted" : "Enquiry declined");
+                } catch (error) {
+                  toast.error("Could not update enquiry", { description: error instanceof Error ? error.message : "Please try again." });
+                }
+              }}
+            />
+          ))}
         </TabsContent>
 
         <TabsContent value="profile" className="mt-6">
@@ -141,6 +168,29 @@ function MySpace() {
           </div>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function EnquiryRow({ enquiry, bookTitle, buyerName, onRespond }: {
+  enquiry: Enquiry;
+  bookTitle: string;
+  buyerName: string;
+  onRespond: (status: "accepted" | "declined") => Promise<void>;
+}) {
+  return (
+    <div className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+      <div>
+        <div className="font-medium">{buyerName} · {bookTitle}</div>
+        <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{enquiry.message || "No message included."}</p>
+        <div className="mt-1 text-xs capitalize text-muted-foreground">{enquiry.status}</div>
+      </div>
+      {enquiry.status === "pending" && (
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => onRespond("accepted")}>Accept</Button>
+          <Button size="sm" variant="outline" onClick={() => onRespond("declined")}>Decline</Button>
+        </div>
+      )}
     </div>
   );
 }

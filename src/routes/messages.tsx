@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MessageCircle, ShieldCheck } from "lucide-react";
-import { useCurrentUser, useStore } from "@/lib/mock-store";
+import { useCurrentUser, useLiveTables, useStore } from "@/lib/mock-store";
 import { ChatDialog } from "@/components/chat-dialog";
 import { Button } from "@/components/ui/button";
 
@@ -20,12 +20,13 @@ function MessagesPage() {
   const me = useCurrentUser();
   const { signedIn, threads, users, books } = useStore();
   const navigate = useNavigate();
+  const [openChat, setOpenChat] = useState<{ otherId: string; bookId?: string } | null>(null);
+  useLiveTables(signedIn ? ["messages", "enquiries"] : []);
   useEffect(() => {
     if (!signedIn) { toast("Sign in to view messages"); navigate({ to: "/auth" }); }
   }, [signedIn, navigate]);
   if (!signedIn) return null;
   const mine = threads.filter((t) => t.participants.includes(me.id));
-  const [openChat, setOpenChat] = useState<string | null>(null);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -39,7 +40,7 @@ function MessagesPage() {
 
       {mine.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border p-16 text-center text-muted-foreground">
-          No conversations yet. Open a book and tap <span className="font-medium text-foreground">Chat</span> to start one.
+          No conversations yet. Enquire about a book and wait for the seller to accept before chatting.
           <div className="mt-4">
             <Button asChild variant="outline"><Link to="/browse">Browse books</Link></Button>
           </div>
@@ -65,7 +66,7 @@ function MessagesPage() {
                     {last ? last.text : "No messages yet."}
                   </div>
                 </div>
-                <Button size="sm" onClick={() => setOpenChat(otherId)}>
+                <Button size="sm" onClick={() => setOpenChat({ otherId, bookId: t.bookId })}>
                   <MessageCircle className="mr-2 h-4 w-4" /> Open
                 </Button>
               </li>
@@ -74,7 +75,14 @@ function MessagesPage() {
         </ul>
       )}
 
-      {openChat && <ChatDialog open onOpenChange={(v) => !v && setOpenChat(null)} otherId={openChat} />}
+      {openChat && (
+        <ChatDialog
+          open
+          onOpenChange={(v) => !v && setOpenChat(null)}
+          otherId={openChat.otherId}
+          bookId={openChat.bookId}
+        />
+      )}
     </div>
   );
 }

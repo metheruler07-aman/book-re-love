@@ -164,6 +164,18 @@ export type Offer = {
   createdAt: string;
 };
 
+export type EnquiryStatus = "pending" | "accepted" | "declined";
+export type Enquiry = {
+  id: string;
+  bookId: string;
+  buyerId: string;
+  sellerId: string;
+  message?: string;
+  status: EnquiryStatus;
+  createdAt: string;
+  decidedAt?: string;
+};
+
 export type Order = {
   id: string;
   bookId: string;
@@ -395,6 +407,7 @@ type Store = {
   commissions: Commissions;
   queries: SupportQuery[];
   offers: Offer[];
+  enquiries: Enquiry[];
   orders: Order[];
   buybackRequests: BuybackRequest[];
   buybackExtensions: BuybackExtension[];
@@ -442,6 +455,8 @@ type Store = {
 
   createOffer: (bookId: string, amount: number, message?: string) => Promise<void>;
   respondOffer: (id: string, action: "accept" | "decline" | "counter", counterAmount?: number, note?: string) => Promise<void>;
+  createEnquiry: (bookId: string, message?: string) => Promise<void>;
+  respondEnquiry: (id: string, status: "accepted" | "declined") => Promise<void>;
 
   createOrder: (input: CreateOrderInput) => Promise<Order>;
   confirmHandoff: (orderId: string, code: string) => Promise<{ ok: boolean }>;
@@ -491,7 +506,9 @@ export type Notification = {
   createdAt: string;
 };
 
-function threadKey(a: string, b: string) { return [a, b].sort().join("|"); }
+function threadKey(a: string, b: string, bookId?: string) {
+  return `${[a, b].sort().join("|")}|${bookId ?? ""}`;
+}
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [currentUserId, setCurrentUserId] = useState<string>("");
@@ -509,6 +526,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   });
   const [queries, setQueries] = useState<SupportQuery[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [buybackRequests, setBuybackRequests] = useState<BuybackRequest[]>([]);
   const [buybackExtensions, setBuybackExtensions] = useState<BuybackExtension[]>([]);
@@ -634,7 +652,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [currentUserId]);
 
   const loadPrivate = useCallback(async (uid: string) => {
-    const [o, of0, m, q, qr, nt, bbr, bbe] = await Promise.all([
+    const [o, of0, m, q, qr, nt, bbr, bbe, enq] = await Promise.all([
       supabase.from("orders").select("*").or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).order("created_at", { ascending: false }),
       supabase.from("offers").select("*").or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).order("created_at", { ascending: false }),
       supabase.from("messages").select("*").or(`from_id.eq.${uid},to_id.eq.${uid}`).order("created_at", { ascending: true }),
@@ -643,7 +661,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       supabase.from("notifications").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(50),
       supabase.from("buyback_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("buyback_extensions").select("*").order("created_at", { ascending: false }),
+      supabase.from("enquiries").select("*").or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).order("created_at", { ascending: false }),
     ]);
+    if (enq.error) throw enq.error;
+    setEnquiries(((enq.data ?? []) as Array<{
+      id: string; book_id: string; buyer_id: string; seller_id: string; message: string | null;
+      status: EnquiryStatus; created_at: string; decided_at: string | null;
+    }>).map((row) => ({
+      id: row.id, bookId: row.book_id, buyerId: row.buyer_id, sellerId: row.seller_id,
+      message: row.message ?? undefined, status: row.status, createdAt: row.created_at,
+      decidedAt: row.decided_at ?? undefined,
+    })));
     setOrders(((o.data ?? []) as Array<{
       id: string; buyer_id: string; seller_id: string; book_id: string | null; kind: string;
       rental_weeks: number | null; amount: number; payment_method: PaymentKey;
@@ -682,7 +710,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const map = new Map<string, Thread>();
     for (const msg of msgs) {
       const other = msg.from_id === uid ? msg.to_id : msg.from_id;
-      const key = threadKey(uid, other);
+      const key = threadKey(uid, other, msg.book_id ?? undefined);
       if (!map.has(key)) {
         map.set(key, { id: key, participants: [uid, other], bookId: msg.book_id ?? undefined, messages: [] });
       }
@@ -808,15 +836,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     signIn: (id) => { setCurrentUserId(id); setSignedIn(true); },
     signOut: async () => { await supabase.auth.signOut(); setSignedIn(false); setCurrentUserId(""); },
 
-    users, books, notes, requests, recommendations, threads, commissions, queries, offers, orders,
+    users, books, notes, requests, recommendations, threads, commissions, queries, offers, enquiries, orders,
     buybackRequests, buybackExtensions,
     notifications,
     unreadNotifications: notifications.filter((n) => !n.read).length,
     platformSettings,
 
     messageCountWith: (otherId) => {
-      const t = threads.find((th) => th.participants.includes(currentUserId) && th.participants.includes(otherId));
-      return t ? t.messages.length : 0;
+      return threads
+        .filter((th) => th.participants.includes(currentUserId) && th.participants.includes(otherId))
+        .reduce((total, thread) => total + thread.messages.length, 0);
     },
     activateListingChat: async (bookId) => {
       const { error } = await supabase.from("books").update({
@@ -1043,16 +1072,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
 
     getThread: (otherId, bookId) => {
-      const key = threadKey(currentUserId || "anon", otherId);
+      const key = threadKey(currentUserId || "anon", otherId, bookId);
       return threads.find((t) => t.id === key)
         ?? { id: key, participants: [currentUserId, otherId], bookId, messages: [] };
     },
     sendMessage: async (otherId, text, bookId) => {
-      if (!currentUserId) return { redacted: false };
+      if (!currentUserId) throw new Error("Sign in required");
+      if (!bookId) throw new Error("Choose a book with an accepted enquiry to chat");
+      const { data: acceptedEnquiries, error: enquiryError } = await supabase.from("enquiries")
+        .select("buyer_id,seller_id")
+        .eq("book_id", bookId)
+        .eq("status", "accepted");
+      if (enquiryError) throw enquiryError;
+      const hasAcceptedEnquiry = (acceptedEnquiries ?? []).some((enquiry) =>
+        (enquiry.buyer_id === currentUserId && enquiry.seller_id === otherId) ||
+        (enquiry.buyer_id === otherId && enquiry.seller_id === currentUserId),
+      );
+      if (!hasAcceptedEnquiry) throw new Error("Chat opens after the seller accepts your enquiry");
       const { clean, redacted } = scrubPhone(text);
-      await supabase.from("messages").insert({
+      const { error } = await supabase.from("messages").insert({
         from_id: currentUserId, to_id: otherId, text: clean, redacted, book_id: bookId ?? null,
       });
+      if (error) throw error;
       await loadPrivate(currentUserId);
       return { redacted };
     },
@@ -1077,6 +1118,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (action === "counter") patch.counter_amount = counterAmount ?? null;
       await supabase.from("offers").update(patch).eq("id", id);
       await refresh();
+    },
+    createEnquiry: async (bookId, message) => {
+      if (!currentUserId) throw new Error("Sign in required");
+      const book = books.find((item) => item.id === bookId);
+      if (!book) throw new Error("Book not found");
+      if (book.sellerId === currentUserId) throw new Error("You cannot enquire about your own listing");
+      if (book.status !== "approved" || book.sold || book.removed) throw new Error("This book is not available for enquiries");
+      const trimmedMessage = message?.trim();
+      if (trimmedMessage && trimmedMessage.length > 300) throw new Error("Enquiry messages must be 300 characters or fewer");
+      const { error } = await supabase.from("enquiries").insert({
+        book_id: bookId, buyer_id: currentUserId, seller_id: book.sellerId,
+        message: trimmedMessage || null,
+      });
+      if (error) throw error;
+      await loadPrivate(currentUserId);
+    },
+    respondEnquiry: async (id, status) => {
+      if (!currentUserId) throw new Error("Sign in required");
+      const enquiry = enquiries.find((item) => item.id === id);
+      if (!enquiry || enquiry.sellerId !== currentUserId || enquiry.status !== "pending") {
+        throw new Error("This enquiry is no longer available to respond to");
+      }
+      const { data, error } = await supabase.from("enquiries").update({ status })
+        .eq("id", id).eq("seller_id", currentUserId).eq("status", "pending")
+        .select("id").maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("This enquiry is no longer pending");
+      await loadPrivate(currentUserId);
     },
 
     createOrder: async (input) => {
@@ -1189,7 +1258,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
   }), [
     currentUserId, signedIn, loading, users, books, notes, requests, recommendations,
-    threads, commissions, queries, offers, orders, buybackRequests, buybackExtensions,
+    threads, commissions, queries, offers, enquiries, orders, buybackRequests, buybackExtensions,
     notifications, platformSettings, loadPrivate, loadPublic,
   ]);
 

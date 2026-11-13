@@ -1,8 +1,8 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, MapPin, ShoppingBag, Repeat, HandCoins, Truck, MessageCircle, CreditCard, QrCode, Wallet, Banknote, Clock, XCircle, Percent, Handshake, Lock, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, MapPin, ShoppingBag, Repeat, HandCoins, Truck, MessageCircle, CreditCard, QrCode, Wallet, Banknote, Clock, XCircle, Percent, Handshake } from "lucide-react";
 import { toast } from "sonner";
-import { loadListingPhotos, makeThumb, updateBookThumb, useCurrentUser, useStore, type DeliveryMode, type PaymentKey, type Settlement } from "@/lib/mock-store";
+import { loadListingPhotos, makeThumb, updateBookThumb, useCurrentUser, useLiveTables, useStore, type DeliveryMode, type PaymentKey, type Settlement } from "@/lib/mock-store";
 import { FEES_ENABLED, PAYMENTS_ENABLED } from "@/lib/feature-flags";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +41,7 @@ const PAY_META: Record<PaymentKey, { icon: typeof QrCode; label: string }> = {
 
 function BookDetail() {
   const { id } = Route.useParams();
-  const { books, users, commissions, signedIn, createOffer, createOrder, sendMessage, platformSettings, activateListingChat } = useStore();
+  const { books, users, commissions, signedIn, enquiries, createEnquiry, createOffer, createOrder, sendMessage } = useStore();
   const me = useCurrentUser();
   const navigate = useNavigate();
   const book = books.find((b) => b.id === id && !b.removed);
@@ -55,19 +55,14 @@ function BookDetail() {
   const isOwner = me.id === book.sellerId;
   const isAdmin = me.role === "admin";
   const isVisible = book.status === "approved" || isOwner || isAdmin;
-  const chatFee = book.chatFee || platformSettings.defaultChatFee;
-  const chatOpenable = book.chatActivated && !book.sold;
-
+  useLiveTables(signedIn ? ["enquiries"] : []);
+  const enquiry = enquiries.find((item) => item.bookId === book.id && item.buyerId === me.id);
   const [chatOpen, setChatOpen] = useState(false);
   const [heroIdx, setHeroIdx] = useState(0);
   const [checkoutKind, setCheckoutKind] = useState<"buy" | "rent" | null>(null);
   const [bargainOpen, setBargainOpen] = useState(false);
-  const [activateOpen, setActivateOpen] = useState(false);
-
-  const requireAuth = (fn: () => void) => () => {
-    if (!signedIn) { toast("Sign in to continue"); navigate({ to: "/auth" }); return; }
-    fn();
-  };
+  const [enquiryMessage, setEnquiryMessage] = useState("");
+  const [enquirySubmitting, setEnquirySubmitting] = useState(false);
 
   const paymentBadges = (Object.keys(PAY_META) as PaymentKey[])
     .filter((k) => seller.paymentMethods[k] && (PAYMENTS_ENABLED || (k !== "card" && k !== "wallet")))
@@ -204,69 +199,72 @@ function BookDetail() {
             </div>
           </div>
 
-          {isOwner && book.status === "approved" && (
-            <div className="mt-6 rounded-lg border border-border bg-card p-4">
-              {book.chatActivated ? (
-                <div className="flex items-center gap-2 text-sm text-accent">
-                  <CheckCircle2 className="h-4 w-4" /> Chat is active for this listing.
-                </div>
-              ) : !FEES_ENABLED ? (
-                <>
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <MessageCircle className="h-4 w-4 text-primary" /> Chat is free for this listing
-                  </div>
-                  <Button className="mt-3" onClick={async () => {
-                    try {
-                      await activateListingChat(book.id);
-                      toast.success("Chat activated", { description: "Buyers can now message you about this listing." });
-                    } catch {
-                      toast.error("Could not activate chat. Please try again.");
-                    }
-                  }}>
-                    Activate chat
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Lock className="h-4 w-4 text-primary" /> Chat is locked for this listing
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Pay a one-time platform commission of ₹{chatFee} to let buyers chat with you about this book — whether or not it sells.
-                  </p>
-                  <Button className="mt-3" onClick={() => setActivateOpen(true)}>
-                    Activate chat for this listing · ₹{chatFee}
-                  </Button>
-                </>
-              )}
-              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                {book.sold ? "Marked sold — chat is closed." : "Mark the book sold from My Space to close chat."}
-              </div>
-            </div>
-          )}
-
           {book.status === "approved" ? (
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" disabled={book.sold} onClick={requireAuth(() => setCheckoutKind("buy"))}>
-                <ShoppingBag className="mr-2 h-4 w-4" /> Buy now
-              </Button>
-              {book.rentPerWeek && (
-                <Button size="lg" variant="outline" disabled={book.sold} onClick={requireAuth(() => setCheckoutKind("rent"))}>
-                  <Repeat className="mr-2 h-4 w-4" /> Rent
+            <div className="mt-8 grid gap-3">
+              {!isOwner && !signedIn && (
+                <Button size="lg" variant="outline" onClick={() => navigate({ to: "/auth" })}>
+                  Sign in to enquire
                 </Button>
               )}
-              <Button size="lg" variant="outline" disabled={book.sold} onClick={requireAuth(() => setBargainOpen(true))}>
-                <Handshake className="mr-2 h-4 w-4" /> Make an offer
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                disabled={!chatOpenable}
-                onClick={requireAuth(() => setChatOpen(true))}
-              >
-                {chatOpenable ? <MessageCircle className="mr-2 h-4 w-4" /> : <Lock className="mr-2 h-4 w-4" />}
-                {book.sold ? "Chat closed (sold)" : chatOpenable ? "Chat" : "Chat not activated"}
-              </Button>
+              {!isOwner && signedIn && !enquiry && (
+                <div className="grid gap-2 sm:max-w-lg">
+                  <Label htmlFor="book-enquiry-message" className="text-sm">Message to seller (optional)</Label>
+                  <Textarea
+                    id="book-enquiry-message"
+                    rows={2}
+                    maxLength={300}
+                    value={enquiryMessage}
+                    onChange={(event) => setEnquiryMessage(event.target.value)}
+                    placeholder="Ask a quick question about the book"
+                  />
+                  <Button
+                    size="lg"
+                    className="w-fit"
+                    disabled={enquirySubmitting}
+                    onClick={async () => {
+                      setEnquirySubmitting(true);
+                      try {
+                        await createEnquiry(book.id, enquiryMessage);
+                        setEnquiryMessage("");
+                        toast.success("Enquiry sent");
+                      } catch (error) {
+                        toast.error("Could not send enquiry", { description: error instanceof Error ? error.message : "Please try again." });
+                      } finally {
+                        setEnquirySubmitting(false);
+                      }
+                    }}
+                  >
+                    {enquirySubmitting ? "Sending…" : "Enquire"}
+                  </Button>
+                </div>
+              )}
+              {!isOwner && signedIn && enquiry?.status === "pending" && (
+                <p className="text-sm text-muted-foreground">Enquiry sent, waiting for seller</p>
+              )}
+              {!isOwner && signedIn && enquiry?.status === "declined" && (
+                <p className="text-sm text-muted-foreground">Seller declined</p>
+              )}
+              {!isOwner && signedIn && enquiry?.status === "accepted" && (
+                <div className="flex flex-wrap gap-3">
+                  <Button size="lg" variant="outline" disabled={book.sold} onClick={() => setChatOpen(true)}>
+                    <MessageCircle className="mr-2 h-4 w-4" /> Chat with seller
+                  </Button>
+                  <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" disabled={book.sold} onClick={() => setCheckoutKind("buy")}>
+                    <ShoppingBag className="mr-2 h-4 w-4" /> Buy now
+                  </Button>
+                  {book.rentPerWeek && (
+                    <Button size="lg" variant="outline" disabled={book.sold} onClick={() => setCheckoutKind("rent")}>
+                      <Repeat className="mr-2 h-4 w-4" /> Rent
+                    </Button>
+                  )}
+                  <Button size="lg" variant="outline" disabled={book.sold} onClick={() => setBargainOpen(true)}>
+                    <Handshake className="mr-2 h-4 w-4" /> Make an offer
+                  </Button>
+                </div>
+              )}
+              {isOwner && (
+                <p className="text-sm text-muted-foreground">Chat is free and opens for buyers after you accept their enquiry.</p>
+              )}
             </div>
           ) : (
             <div className="mt-8 rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
@@ -312,23 +310,6 @@ function BookDetail() {
         }}
       />
 
-      {FEES_ENABLED && <ActivateChatDialog
-        open={activateOpen}
-        onOpenChange={setActivateOpen}
-        fee={chatFee}
-        upiId={platformSettings.ownerUpiId}
-        bookTitle={book.title}
-        onPaid={async () => {
-          try {
-            await activateListingChat(book.id);
-            setActivateOpen(false);
-            toast.success("Chat activated", { description: "Buyers can now message you about this listing." });
-          } catch {
-            toast.error("Could not activate chat. Please try again.");
-          }
-        }}
-      />}
-
       {checkoutKind && (
         <CheckoutDialog
           open={!!checkoutKind}
@@ -336,7 +317,6 @@ function BookDetail() {
           kind={checkoutKind}
           book={book}
           seller={seller}
-          chatActivated={!!book.chatActivated}
           onConfirm={async ({ paymentMethod, deliveryMode, rentalWeeks, amount, settlement }) => {
             const order = await createOrder({
               bookId: book.id, kind: checkoutKind, rentalWeeks, amount, paymentMethod, deliveryMode, settlement,
@@ -392,43 +372,14 @@ function BargainDialog({ open, onOpenChange, listedPrice, onSubmit }: {
   );
 }
 
-function ActivateChatDialog({ open, onOpenChange, fee, upiId, bookTitle, onPaid }: {
-  open: boolean; onOpenChange: (v: boolean) => void; fee: number; upiId: string;
-  bookTitle: string; onPaid: () => void;
-}) {
-  const upiLink = `upi://pay?pa=${encodeURIComponent(upiId || "owner@upi")}&pn=Book%20Ledger&am=${fee}&cu=INR&tn=${encodeURIComponent(`Chat activation: ${bookTitle}`)}`;
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiLink)}`;
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader><DialogTitle className="font-display">Activate chat · ₹{fee}</DialogTitle></DialogHeader>
-        <div className="grid gap-3 py-2 text-center">
-          <img src={qrSrc} alt={`UPI QR code to pay ₹${fee} chat activation fee`} className="mx-auto h-52 w-52 rounded-md border border-border bg-card p-2" />
-          <div className="text-sm">
-            Pay ₹{fee} to <span className="font-medium">{upiId || "the owner's UPI ID"}</span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            One-time platform commission for this listing — separate from any sale, whether or not the book sells.
-          </p>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={onPaid}>Mark as Paid</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 function CheckoutDialog({
-  open, onOpenChange, kind, book, seller, chatActivated, onConfirm,
+  open, onOpenChange, kind, book, seller, onConfirm,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   kind: "buy" | "rent";
   book: ReturnType<typeof useStore>["books"][number];
   seller: ReturnType<typeof useStore>["users"][number];
-  chatActivated: boolean;
   onConfirm: (v: { paymentMethod: PaymentKey; deliveryMode: DeliveryMode; rentalWeeks?: number; amount: number; settlement: Settlement }) => void;
 }) {
   const availableMethods = (Object.keys(PAY_META) as PaymentKey[]).filter((k) =>
@@ -473,14 +424,12 @@ function CheckoutDialog({
                     </div>
                   </div>
                 </label>
-                <label className={`flex items-start gap-2 rounded-md border border-border p-3 text-sm ${chatActivated ? "" : "opacity-60"}`}>
-                  <RadioGroupItem value="direct" disabled={!chatActivated} />
+                <label className="flex items-start gap-2 rounded-md border border-border p-3 text-sm">
+                  <RadioGroupItem value="direct" />
                   <div>
                     <div className="font-medium">Pay directly to seller</div>
                     <div className="text-xs text-muted-foreground">
-                      {chatActivated
-                        ? "Settled outside the app. No escrow tracking — marked \"Buyer & Seller Arranged Directly\"."
-                        : "Available once the seller activates chat for this listing."}
+                      Settled outside the app. No escrow tracking — marked "Buyer & Seller Arranged Directly".
                     </div>
                   </div>
                 </label>

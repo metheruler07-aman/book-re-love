@@ -61,7 +61,7 @@ function Empty({ label }: { label: string }) {
 }
 
 function OrderCard({ order, viewer }: { order: Order; viewer: "buyer" | "seller" }) {
-  const { books, users, confirmHandoff, confirmReceived, sendMessage } = useStore();
+  const { books, users, enquiries, confirmHandoff, confirmReceived, sendMessage } = useStore();
   const book = books.find((b) => b.id === order.bookId);
   const other = users.find((u) => u.id === (viewer === "buyer" ? order.sellerId : order.buyerId));
   const [code, setCode] = useState("");
@@ -131,7 +131,16 @@ function OrderCard({ order, viewer }: { order: Order; viewer: "buyer" | "seller"
             <div>Exchange address and delivery details in chat. Book Ledger doesn't calculate shipping.</div>
             <Button size="sm" variant="outline" className="w-fit" onClick={() => {
               const otherId = viewer === "buyer" ? order.sellerId : order.buyerId;
-              sendMessage(otherId, `About order #${order.id.slice(-4)} for "${book.title}" — let's coordinate courier. Sharing address and preferred courier here.`, book.id);
+              const acceptedEnquiry = enquiries.some((enquiry) =>
+                enquiry.bookId === book.id && enquiry.status === "accepted" &&
+                enquiry.buyerId === order.buyerId && enquiry.sellerId === order.sellerId,
+              );
+              if (acceptedEnquiry) {
+                void sendMessage(otherId, `About order #${order.id.slice(-4)} for "${book.title}" — let's coordinate courier. Sharing address and preferred courier here.`, book.id)
+                  .catch((error: unknown) => toast.error("Could not send message", {
+                    description: error instanceof Error ? error.message : "Please try again.",
+                  }));
+              }
               setChatOpen(true);
             }}>
               <MessageCircle className="mr-2 h-4 w-4" /> Open chat with note

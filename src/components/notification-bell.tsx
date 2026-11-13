@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Bell, CheckCheck } from "lucide-react";
+import { toast } from "sonner";
 import { useCurrentUser, useLiveTables, useStore, type Notification } from "@/lib/mock-store";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,14 +12,15 @@ import {
 import { formatDistanceToNow } from "date-fns";
 
 export function NotificationBell() {
-  const { notifications, unreadNotifications, markNotificationRead, markAllNotificationsRead } = useStore();
+  const { notifications, enquiries, books, users, unreadNotifications, markNotificationRead, markAllNotificationsRead, respondEnquiry } = useStore();
   const me = useCurrentUser();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const enabled = me.notificationsEnabled !== false;
 
   // Stream notifications only while the panel is open; otherwise poll-free.
-  useLiveTables(enabled && open ? ["notifications"] : []);
+  useLiveTables(enabled && open ? ["notifications", "enquiries"] : []);
+  const pendingEnquiries = enquiries.filter((enquiry) => enquiry.sellerId === me.id && enquiry.status === "pending");
 
   if (!enabled) return null;
 
@@ -26,6 +28,7 @@ export function NotificationBell() {
   const target = (n: Notification): { path: string; params?: Record<string, string> } => {
     if (n.relatedOrderId) return { path: "/orders" };
     if (n.type === "message_new") return { path: "/messages" };
+    if (n.type.startsWith("enquiry_")) return { path: "/my-space" };
     if (n.relatedBookId) return { path: "/book/$id", params: { id: n.relatedBookId } };
     if (n.relatedNoteId) return { path: "/notes" };
     if (n.type === "recommendation_upvote") return { path: "/recommendations" };
@@ -64,6 +67,43 @@ export function NotificationBell() {
           )}
         </div>
         <div className="max-h-96 overflow-y-auto">
+          {pendingEnquiries.length > 0 && (
+            <section className="border-b border-border p-3">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pending enquiries</div>
+              <ul className="space-y-2">
+                {pendingEnquiries.map((enquiry) => (
+                  <li key={enquiry.id} className="rounded-md border border-border bg-card p-3">
+                    <div className="text-sm font-medium">
+                      {users.find((user) => user.id === enquiry.buyerId)?.name ?? "Reader"}
+                      {" · "}
+                      {books.find((book) => book.id === enquiry.bookId)?.title ?? "Book listing"}
+                    </div>
+                    <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">
+                      {enquiry.message || "No message included."}
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <Button size="sm" onClick={async () => {
+                        try {
+                          await respondEnquiry(enquiry.id, "accepted");
+                          toast.success("Enquiry accepted");
+                        } catch (error) {
+                          toast.error("Could not accept enquiry", { description: error instanceof Error ? error.message : "Please try again." });
+                        }
+                      }}>Accept</Button>
+                      <Button size="sm" variant="outline" onClick={async () => {
+                        try {
+                          await respondEnquiry(enquiry.id, "declined");
+                          toast.success("Enquiry declined");
+                        } catch (error) {
+                          toast.error("Could not decline enquiry", { description: error instanceof Error ? error.message : "Please try again." });
+                        }
+                      }}>Decline</Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           {notifications.length === 0 ? (
             <div className="p-6 text-center text-xs text-muted-foreground">You're all caught up.</div>
           ) : (
