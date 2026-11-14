@@ -10,20 +10,33 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
+import { useSoldReminders } from "@/hooks/use-sold-reminders";
+import { SoldReminderList } from "@/components/sold-reminder-list";
 
 export function NotificationBell() {
-  const { notifications, enquiries, books, users, unreadNotifications, markNotificationRead, markAllNotificationsRead, respondEnquiry } = useStore();
+  const {
+    notifications,
+    enquiries,
+    books,
+    users,
+    unreadNotifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+    respondEnquiry,
+  } = useStore();
   const me = useCurrentUser();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const enabled = me.notificationsEnabled !== false;
+  const { reminders, notYet } = useSoldReminders();
 
   // Stream notifications only while the panel is open; otherwise poll-free.
   useLiveTables(enabled && open ? ["notifications", "enquiries"] : []);
-  const pendingEnquiries = enquiries.filter((enquiry) => enquiry.sellerId === me.id && enquiry.status === "pending");
+  const pendingEnquiries = enquiries.filter(
+    (enquiry) => enquiry.sellerId === me.id && enquiry.status === "pending",
+  );
 
   if (!enabled) return null;
-
 
   const target = (n: Notification): { path: string; params?: Record<string, string> } => {
     if (n.relatedOrderId) return { path: "/orders" };
@@ -67,9 +80,12 @@ export function NotificationBell() {
           )}
         </div>
         <div className="max-h-96 overflow-y-auto">
+          <SoldReminderList reminders={reminders} onNotYet={notYet} variant="notification" />
           {pendingEnquiries.length > 0 && (
             <section className="border-b border-border p-3">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pending enquiries</div>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Pending enquiries
+              </div>
               <ul className="space-y-2">
                 {pendingEnquiries.map((enquiry) => (
                   <li key={enquiry.id} className="rounded-md border border-border bg-card p-3">
@@ -82,31 +98,50 @@ export function NotificationBell() {
                       {enquiry.message || "No message included."}
                     </p>
                     <div className="mt-2 flex gap-2">
-                      <Button size="sm" onClick={async () => {
-                        try {
-                          await respondEnquiry(enquiry.id, "accepted");
-                          toast.success("Enquiry accepted");
-                        } catch (error) {
-                          toast.error("Could not accept enquiry", { description: error instanceof Error ? error.message : "Please try again." });
-                        }
-                      }}>Accept</Button>
-                      <Button size="sm" variant="outline" onClick={async () => {
-                        try {
-                          await respondEnquiry(enquiry.id, "declined");
-                          toast.success("Enquiry declined");
-                        } catch (error) {
-                          toast.error("Could not decline enquiry", { description: error instanceof Error ? error.message : "Please try again." });
-                        }
-                      }}>Decline</Button>
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            await respondEnquiry(enquiry.id, "accepted");
+                            toast.success("Enquiry accepted");
+                          } catch (error) {
+                            toast.error("Could not accept enquiry", {
+                              description:
+                                error instanceof Error ? error.message : "Please try again.",
+                            });
+                          }
+                        }}
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            await respondEnquiry(enquiry.id, "declined");
+                            toast.success("Enquiry declined");
+                          } catch (error) {
+                            toast.error("Could not decline enquiry", {
+                              description:
+                                error instanceof Error ? error.message : "Please try again.",
+                            });
+                          }
+                        }}
+                      >
+                        Decline
+                      </Button>
                     </div>
                   </li>
                 ))}
               </ul>
             </section>
           )}
-          {notifications.length === 0 ? (
-            <div className="p-6 text-center text-xs text-muted-foreground">You're all caught up.</div>
-          ) : (
+          {notifications.length === 0 && reminders.length === 0 ? (
+            <div className="p-6 text-center text-xs text-muted-foreground">
+              You're all caught up.
+            </div>
+          ) : notifications.length > 0 ? (
             <ul className="divide-y divide-border">
               {notifications.map((n) => (
                 <li key={n.id}>
@@ -119,7 +154,9 @@ export function NotificationBell() {
                       aria-hidden
                     />
                     <div className="min-w-0 flex-1">
-                      <div className={`text-sm ${n.read ? "text-muted-foreground" : "text-foreground"}`}>
+                      <div
+                        className={`text-sm ${n.read ? "text-muted-foreground" : "text-foreground"}`}
+                      >
                         {n.message}
                       </div>
                       <div className="mt-0.5 text-[11px] text-muted-foreground">
@@ -130,7 +167,7 @@ export function NotificationBell() {
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
