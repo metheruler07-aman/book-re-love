@@ -50,6 +50,13 @@
       "when": 1794540929259,
       "tag": "0006_create_book_enquiries",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794629124813,
+      "tag": "0007_require_accepted_enquiry_for_book_chat",
+      "breakpoints": true
     }
   ]
 }
