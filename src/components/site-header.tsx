@@ -219,15 +219,26 @@ export function SiteFooter() {
         <div className="flex gap-8">
           <div>
             <div className="mb-2 font-medium text-foreground">Market</div>
-            <ul className="space-y-1"><li>Shop</li><li>Rent</li><li>Notes</li></ul>
+            <ul className="space-y-1">
+              <li><Link to="/browse" className="hover:text-foreground">Shop</Link></li>
+              <li><Link to="/browse" className="hover:text-foreground">Rent</Link></li>
+              <li><Link to="/notes" className="hover:text-foreground">Notes</Link></li>
+            </ul>
           </div>
           <div>
             <div className="mb-2 font-medium text-foreground">Community</div>
-            <ul className="space-y-1"><li>Recommendations</li><li>Requests</li><li>Messages</li></ul>
+            <ul className="space-y-1">
+              <li><Link to="/recommendations" className="hover:text-foreground">Recommendations</Link></li>
+              <li><Link to="/community" className="hover:text-foreground">Requests</Link></li>
+              <li><Link to="/messages" className="hover:text-foreground">Messages</Link></li>
+            </ul>
           </div>
           <div>
             <div className="mb-2 font-medium text-foreground">Help</div>
-            <ul className="space-y-1"><li>Raise a query</li><li>Buyback</li></ul>
+            <ul className="space-y-1">
+              <li><Link to="/support" className="hover:text-foreground">Raise a query</Link></li>
+              <li><Link to="/orders" className="hover:text-foreground">Buyback</Link></li>
+            </ul>
           </div>
           <div>
             <div className="mb-2 font-medium text-foreground">Legal</div>
