@@ -64,6 +64,13 @@
       "when": 1794884837385,
       "tag": "0008_add_enquiry_retries",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794885712548,
+      "tag": "0009_add_seller_enquiry_blocks",
+      "breakpoints": true
     }
   ]
 }

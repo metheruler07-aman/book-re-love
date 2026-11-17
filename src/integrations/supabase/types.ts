@@ -793,6 +793,24 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_blocks: {
+        Row: {
+          blocked_user_id: string
+          created_at: string
+          seller_id: string
+        }
+        Insert: {
+          blocked_user_id: string
+          created_at?: string
+          seller_id: string
+        }
+        Update: {
+          blocked_user_id?: string
+          created_at?: string
+          seller_id?: string
+        }
+        Relationships: []
+      }
       support_queries: {
         Row: {
           body: string
@@ -960,6 +978,7 @@ export type Database = {
       }
     }
     Functions: {
+      block_buyer: { Args: { p_user_id: string }; Returns: undefined }
       can_view_public_profile: {
         Args: { _profile_id: string }
         Returns: boolean
@@ -1034,6 +1053,7 @@ export type Database = {
         Args: { p_book_id: string; p_message: string }
         Returns: string
       }
+      unblock_buyer: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "buyer" | "seller" | "admin"
