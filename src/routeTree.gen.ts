@@ -24,6 +24,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
@@ -107,6 +108,11 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SupportRoute = SupportRouteImport.update({
   id: '/support',
   path: '/support',
@@ -162,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -186,6 +193,7 @@ export interface FileRoutesByTo {
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -211,6 +219,7 @@ export interface FileRoutesById {
   '/recommendations': typeof RecommendationsRoute
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -237,6 +246,7 @@ export interface FileRouteTypes {
     | '/recommendations'
     | '/sell'
     | '/settings'
+    | '/sitemap.xml'
     | '/support'
     | '/terms'
     | '/.mcp/list-tools'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/recommendations'
     | '/sell'
     | '/settings'
+    | '/sitemap.xml'
     | '/support'
     | '/terms'
     | '/.mcp/list-tools'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/recommendations'
     | '/sell'
     | '/settings'
+    | '/sitemap.xml'
     | '/support'
     | '/terms'
     | '/.mcp/list-tools'
@@ -310,6 +322,7 @@ export interface RootRouteChildren {
   RecommendationsRoute: typeof RecommendationsRoute
   SellRoute: typeof SellRoute
   SettingsRoute: typeof SettingsRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
@@ -426,6 +439,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/support': {
       id: '/support'
       path: '/support'
@@ -494,6 +514,7 @@ const rootRouteChildren: RootRouteChildren = {
   RecommendationsRoute: RecommendationsRoute,
   SellRoute: SellRoute,
   SettingsRoute: SettingsRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
