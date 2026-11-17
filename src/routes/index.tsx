@@ -18,6 +18,7 @@ export const Route = createFileRoute("/")({
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: "Book Ledger",
+          alternateName: ["Book re Love"],
           url: siteUrl("/"),
           description: HOME_DESCRIPTION,
         }),
