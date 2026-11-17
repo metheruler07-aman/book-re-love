@@ -20,7 +20,7 @@ const communityLinks = [
   { to: "/community" as const,       label: "Community", icon: Users },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({ offline = false }: { offline?: boolean }) {
   const { signedIn, signOut } = useStore();
   const me = useCurrentUser();
   const { theme, toggle } = useTheme();
@@ -31,6 +31,15 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur">
+      {offline && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="bg-accent/10 py-1 text-center text-xs font-medium text-accent"
+        >
+          You&apos;re offline
+        </div>
+      )}
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-3 sm:gap-3 sm:px-6 md:h-16">
         {/* Mobile drawer */}
         <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>

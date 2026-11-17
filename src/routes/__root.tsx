@@ -13,7 +13,6 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { registerServiceWorker } from "@/lib/register-sw";
 import { StoreProvider, ThemeProvider } from "@/lib/mock-store";
 import { SiteHeader, SiteFooter, MobileBottomNavigation } from "@/components/site-header";
-import { OfflineScreen } from "@/components/offline-screen";
 import { Toaster } from "@/components/ui/sonner";
 import { HOME_DESCRIPTION, HOME_TITLE, siteUrl } from "@/lib/seo";
 
@@ -144,18 +143,12 @@ function RootComponent() {
       <ThemeProvider>
         <StoreProvider>
           <div className="flex min-h-screen flex-col bg-background text-foreground">
-            {isOffline ? (
-              <OfflineScreen />
-            ) : (
-              <>
-                <SiteHeader />
-                <main className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
-                  <Outlet />
-                </main>
-                <SiteFooter />
-                <MobileBottomNavigation />
-              </>
-            )}
+            <SiteHeader offline={isOffline} />
+            <main className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+              <Outlet />
+            </main>
+            <SiteFooter />
+            <MobileBottomNavigation />
           </div>
           <Toaster />
         </StoreProvider>
