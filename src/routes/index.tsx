@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowRight, Sparkles, Users, ShieldCheck, BadgeCheck, KeyRound, RefreshCw } from "lucide-react";
-import { useStore } from "@/lib/mock-store";
-import { supabase } from "@/integrations/supabase/client";
+import { useLiveTables, useStore } from "@/lib/mock-store";
 import { BookCard } from "@/components/book-card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -43,22 +42,26 @@ const KNOWN = new Set<string>(["Examination", "Fiction", "Non-fiction", "NCERT"]
 
 function Home() {
   const { books, requests } = useStore();
+  useLiveTables(["books"]);
   const [category, setCategory] = useState<string>("All");
-  const liveCount = useLiveBookCount();
+  const liveBooks = useMemo(
+    () => books.filter((book) => !book.removed && !book.sold && book.status === "approved"),
+    [books],
+  );
+  const liveCount = liveBooks.length;
 
   const latest = useMemo(() => {
-    const live = books.filter((b) => !b.removed && !b.sold && b.status === "approved");
     const filtered =
       category === "All"
-        ? live
+        ? liveBooks
         : category === "Others"
-          ? live.filter((b) => !KNOWN.has(b.category))
-          : live.filter((b) => b.category === category);
+          ? liveBooks.filter((b) => !KNOWN.has(b.category))
+          : liveBooks.filter((b) => b.category === category);
     return [...filtered].sort((a, b) => b.listedAt.localeCompare(a.listedAt)).slice(0, 10);
-  }, [books, category]);
+  }, [liveBooks, category]);
 
   const topRequests = [...requests].sort((a, b) => b.upvotes.length - a.upvotes.length).slice(0, 3);
-  const heroBooks = books.filter((b) => !b.removed && b.status === "approved").slice(0, 4);
+  const heroBooks = liveBooks.slice(0, 4);
 
   const trustBadges = [
     { icon: ShieldCheck, title: "Direct payments", body: "Book Ledger connects buyers and sellers. You arrange payment directly. Inspect the book and meet in a public place." },
@@ -223,24 +226,4 @@ function Home() {
       </section>
     </div>
   );
-}
-
-/** One-shot count on mount — no standing realtime channel (saves mobile data). */
-function useLiveBookCount() {
-  const [count, setCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { count: c } = await supabase
-        .from("books")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "approved")
-        .eq("removed", false);
-      if (!cancelled) setCount(c ?? 0);
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  return count;
 }

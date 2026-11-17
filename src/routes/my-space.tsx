@@ -46,9 +46,19 @@ export const Route = createFileRoute("/my-space")({
 
 function MySpace() {
   const me = useCurrentUser();
-  const { signedIn, books, notes, orders, enquiries, users, updateUser, respondEnquiry } =
-    useStore();
-  useLiveTables(signedIn ? ["enquiries"] : []);
+  const {
+    signedIn,
+    books,
+    notes,
+    orders,
+    enquiries,
+    users,
+    updateUser,
+    removeBook,
+    markBookSold,
+    respondEnquiry,
+  } = useStore();
+  useLiveTables(signedIn ? ["books", "enquiries"] : []);
   const navigate = useNavigate();
   const { reminders, notYet } = useSoldReminders();
 
@@ -124,11 +134,11 @@ function MySpace() {
           value={String(myBooks.length + myNotes.length)}
         />
         <StatCard icon={ShoppingBag} label="Purchases" value={String(purchases.length)} />
-        <StatCard icon={Handshake} label="Sales" value={String(sales.length)} />
+        <StatCard icon={Handshake} label="Sales" value={String(sales.length + soldBooks.length)} />
         <StatCard
           icon={Wallet}
           label="Est. inventory"
-          value={`₹${myBooks.filter((b) => b.status === "approved").reduce((a, b) => a + b.price, 0)}`}
+          value={`₹${myBooks.filter((b) => b.status === "approved" && !b.sold).reduce((a, b) => a + b.price, 0)}`}
         />
       </div>
 
@@ -138,17 +148,42 @@ function MySpace() {
             My Listings ({myBooks.length + myNotes.length})
           </TabsTrigger>
           <TabsTrigger value="purchases">My Purchases ({purchases.length})</TabsTrigger>
-          <TabsTrigger value="sales">My Sales ({sales.length})</TabsTrigger>
+          <TabsTrigger value="sales">My Sales ({sales.length + soldBooks.length})</TabsTrigger>
           <TabsTrigger value="enquiries">Enquiries ({pendingEnquiries.length})</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
         </TabsList>
 
         <TabsContent value="listings" className="mt-6 grid gap-6">
-          <ListingsBlock title="Books" items={activeBooks} kind="book" />
+          <ListingsBlock
+            title="Books"
+            items={activeBooks}
+            kind="book"
+            onEdit={(book) => navigate({ to: "/sell", search: { edit: book.id } })}
+            onRemove={async (book) => {
+              if (!window.confirm("Remove this listing? It will leave the shop.")) return;
+              try {
+                await removeBook(book.id);
+                toast.success("Listing removed");
+              } catch (error) {
+                toast.error("Could not remove this listing", {
+                  description: error instanceof Error ? error.message : "Please try again.",
+                });
+              }
+            }}
+            onMarkSold={async (book) => {
+              try {
+                await markBookSold(book.id, true);
+                toast.success(`"${book.title}" marked sold`);
+              } catch (error) {
+                toast.error("Could not mark this book sold", {
+                  description: error instanceof Error ? error.message : "Please try again.",
+                });
+              }
+            }}
+          />
           <ListingsBlock title="Notes" items={myNotes} kind="note" />
-          <ListingsBlock title="Sold" items={soldBooks} kind="book" sold />
-          {myBooks.length + myNotes.length === 0 && (
-            <Empty label="No listings yet.">
+          {activeBooks.length + myNotes.length === 0 && (
+            <Empty label="No active listings yet.">
               <Button asChild size="sm" className="mt-3">
                 <Link to="/sell">List your first book</Link>
               </Button>
@@ -164,10 +199,11 @@ function MySpace() {
         </TabsContent>
 
         <TabsContent value="sales" className="mt-6 grid gap-3">
-          {sales.length === 0 && <Empty label="No sales yet." />}
+          {sales.length === 0 && soldBooks.length === 0 && <Empty label="No sales yet." />}
           {sales.map((o) => (
             <OrderRow key={o.id} order={o} viewer="seller" />
           ))}
+          <ListingsBlock title="Marked sold" items={soldBooks} kind="book" sold />
         </TabsContent>
 
         <TabsContent value="enquiries" className="mt-6 grid gap-3">
@@ -322,11 +358,17 @@ function ListingsBlock({
   items,
   kind,
   sold = false,
+  onEdit,
+  onRemove,
+  onMarkSold,
 }: {
   title: string;
   items: (Book | Note)[];
   kind: "book" | "note";
   sold?: boolean;
+  onEdit?: (book: Book) => void;
+  onRemove?: (book: Book) => void | Promise<void>;
+  onMarkSold?: (book: Book) => void | Promise<void>;
 }) {
   if (items.length === 0) return null;
   return (
@@ -376,6 +418,19 @@ function ListingsBlock({
                       Open →
                     </Link>
                   </Button>
+                )}
+                {isBook && !sold && onEdit && onRemove && onMarkSold && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => onEdit(b)}>
+                      Edit
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => void onRemove(b)}>
+                      Remove
+                    </Button>
+                    <Button size="sm" onClick={() => void onMarkSold(b)}>
+                      Mark sold
+                    </Button>
+                  </>
                 )}
               </div>
             </li>

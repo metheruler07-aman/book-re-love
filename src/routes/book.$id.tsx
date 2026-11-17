@@ -67,7 +67,10 @@ function BookDetail() {
   const { books, users, commissions, signedIn, enquiries, createEnquiry, createOffer, createOrder, sendMessage } = useStore();
   const me = useCurrentUser();
   const navigate = useNavigate();
-  const book = books.find((b) => b.id === id && !b.removed);
+  useLiveTables(["books"]);
+  const book = books.find(
+    (b) => b.id === id && !b.removed && (!b.sold || b.sellerId === me.id || me.role === "admin"),
+  );
   if (!book) throw notFound();
   const seller = users.find((u) => u.id === book.sellerId)!;
   const buybackAmount = Math.round((book.price * book.buybackPercent) / 100);

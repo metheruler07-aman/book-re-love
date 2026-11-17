@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, Clock, CheckCircle2, XCircle, ShieldCheck, ImagePlus, Handshake } from "lucide-react";
 import { toast } from "sonner";
-import { filesToDataUrls, loadListingPhotos, useCurrentUser, useStore, type Condition, type DeliveryOptions } from "@/lib/mock-store";
+import { filesToDataUrls, loadListingPhotos, useCurrentUser, useLiveTables, useStore, type Condition, type DeliveryOptions } from "@/lib/mock-store";
 import { FEES_ENABLED } from "@/lib/feature-flags";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/sell")({
+  validateSearch: (search: Record<string, unknown>): { edit?: string } =>
+    typeof search.edit === "string" ? { edit: search.edit } : {},
   head: () => ({
     meta: [
       { title: "Sell & rent books — Book Ledger" },
@@ -33,6 +35,8 @@ function Sell() {
   const me = useCurrentUser();
   const { signedIn, books, commissions, removeBook, offers, users, respondOffer } = useStore();
   const navigate = useNavigate();
+  const { edit } = Route.useSearch();
+  useLiveTables(signedIn ? ["enquiries"] : []);
 
   useEffect(() => {
     if (!signedIn) { toast("Sign in to sell books"); navigate({ to: "/auth" }); }
@@ -41,7 +45,7 @@ function Sell() {
   if (!signedIn) return null;
 
   const myBooks = books.filter((b) => b.sellerId === me.id && !b.removed);
-  const live = myBooks.filter((b) => b.status === "approved");
+  const live = myBooks.filter((b) => b.status === "approved" && !b.sold);
   const myOffers = offers.filter((o) => o.sellerId === me.id);
 
 
@@ -113,10 +117,29 @@ function Sell() {
                     {b.buybackEnabled ? `₹${Math.round((b.price * b.buybackPercent) / 100)} · ${b.buybackWindowDays} days` : "—"}
                   </TableCell>
                   <TableCell className="text-right">
-                    <EditListingDialog id={b.id} />
-                    <Button size="icon" variant="ghost" onClick={() => { removeBook(b.id); toast("Listing removed"); }}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!b.sold && (
+                      <>
+                        <EditListingDialog id={b.id} initialOpen={edit === b.id} />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label={`Remove ${b.title}`}
+                          onClick={async () => {
+                            if (!window.confirm("Remove this listing? It will leave the shop.")) return;
+                            try {
+                              await removeBook(b.id);
+                              toast.success("Listing removed");
+                            } catch (error) {
+                              toast.error("Could not remove this listing", {
+                                description: error instanceof Error ? error.message : "Please try again.",
+                              });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -422,11 +445,12 @@ function NewListingDialog() {
   );
 }
 
-function EditListingDialog({ id }: { id: string }) {
-  const { books, updateBook } = useStore();
+function EditListingDialog({ id, initialOpen = false }: { id: string; initialOpen?: boolean }) {
+  const { books, enquiries, updateBook } = useStore();
   const b = books.find((x) => x.id === id)!;
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initialOpen);
   const [price, setPrice] = useState(String(b.price));
+  const [priceEditConfirmed, setPriceEditConfirmed] = useState(false);
   const [rent, setRent] = useState(b.rentPerWeek ? String(b.rentPerWeek) : "");
   const [cond, setCond] = useState<Condition>(b.condition);
   const [buybackEnabled, setBuybackEnabled] = useState(b.buybackEnabled);
@@ -439,6 +463,13 @@ function EditListingDialog({ id }: { id: string }) {
   const [photos, setPhotos] = useState<string[]>(b.photos);
   const [photosLoading, setPhotosLoading] = useState(false);
   const [delivery, setDelivery] = useState<DeliveryOptions>(b.deliveryOptions);
+  const hasAcceptedEnquiry = enquiries.some(
+    (enquiry) => enquiry.bookId === id && enquiry.status === "accepted",
+  );
+
+  useEffect(() => {
+    if (initialOpen) setOpen(true);
+  }, [initialOpen]);
 
   // Photos are not part of the lightweight listing payload — pull them when editing.
   useEffect(() => {
@@ -461,7 +492,22 @@ function EditListingDialog({ id }: { id: string }) {
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Edit "{b.title}"</DialogTitle></DialogHeader>
         <div className="grid gap-3 py-2">
-          <Field label="Price (₹)"><Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} /></Field>
+          <Field label="Price (₹)">
+            <Input
+              type="number"
+              value={price}
+              onChange={(event) => {
+                if (hasAcceptedEnquiry && !priceEditConfirmed) {
+                  const confirmed = window.confirm(
+                    "An accepted enquiry exists for this book. Changing the price may affect that enquiry. Continue?",
+                  );
+                  if (!confirmed) return;
+                  setPriceEditConfirmed(true);
+                }
+                setPrice(event.target.value);
+              }}
+            />
+          </Field>
           <Field label="Rent / week (₹, blank = not for rent)"><Input type="number" value={rent} onChange={(e) => setRent(e.target.value)} /></Field>
           <Field label="Condition">
             <Select value={cond} onValueChange={(v) => setCond(v as Condition)}>
@@ -509,7 +555,7 @@ function EditListingDialog({ id }: { id: string }) {
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={() => {
+          <Button onClick={async () => {
             if (photos.length === 0) { toast.error("At least one photo required"); return; }
             if (!delivery.selfDeliver && !delivery.courier) { toast.error("Pick a delivery option"); return; }
             const updatedPrice = Number(price);
@@ -522,14 +568,20 @@ function EditListingDialog({ id }: { id: string }) {
             )) {
               toast.error("Buyback amount must be from 25% to 75% of the listed price"); return;
             }
-            updateBook(id, {
-              price: updatedPrice, rentPerWeek: rent ? Number(rent) : undefined, condition: cond, photos,
-              deliveryOptions: delivery, buybackEnabled,
-              buybackPercent: buybackEnabled ? Math.round((amount / updatedPrice) * 100) : b.buybackPercent,
-              buybackWindowDays: Number(buybackWindowDays), buybackMinCondition, buybackNotes: buybackNotes || undefined,
-            });
-            toast.success("Listing updated");
-            setOpen(false);
+            try {
+              await updateBook(id, {
+                price: updatedPrice, rentPerWeek: rent ? Number(rent) : undefined, condition: cond, photos,
+                deliveryOptions: delivery, buybackEnabled,
+                buybackPercent: buybackEnabled ? Math.round((amount / updatedPrice) * 100) : b.buybackPercent,
+                buybackWindowDays: Number(buybackWindowDays), buybackMinCondition, buybackNotes: buybackNotes || undefined,
+              });
+              toast.success("Listing updated");
+              setOpen(false);
+            } catch (error) {
+              toast.error("Could not update this listing", {
+                description: error instanceof Error ? error.message : "Please try again.",
+              });
+            }
           }}>Save</Button>
         </DialogFooter>
       </DialogContent>

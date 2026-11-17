@@ -651,6 +651,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     ));
   }, [currentUserId]);
 
+  const refreshBooks = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("books")
+      .select(BOOK_LIST_COLS)
+      .order("listed_at", { ascending: false });
+    if (error) throw error;
+    setBooks((data ?? []).map((row) => toBook(row as unknown as BookRow)));
+  }, []);
+
   const loadPrivate = useCallback(async (uid: string) => {
     const [o, of0, m, q, qr, nt, bbr, bbe, enq] = await Promise.all([
       supabase.from("orders").select("*").or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).order("created_at", { ascending: false }),
@@ -808,21 +817,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
   const activeKey = activeTables.join(",");
   useEffect(() => {
-    if (!currentUserId || !activeKey) return;
+    if (!activeKey) return;
     const tables = activeKey.split(",");
+    if (!currentUserId && !tables.includes("books")) return;
     let ch = supabase.channel(`bl-live-${activeKey}`);
     for (const table of tables) {
+      if (table === "notifications" && !currentUserId) continue;
       ch = ch.on(
         "postgres_changes",
         table === "notifications"
           ? { event: "*", schema: "public", table, filter: `user_id=eq.${currentUserId}` }
           : { event: "*", schema: "public", table },
-        () => loadPrivate(currentUserId),
+        () => {
+          if (table === "books") {
+            void refreshBooks().catch((error) =>
+              console.error("Could not refresh public listings after a live update", error),
+            );
+          } else if (currentUserId) {
+            void loadPrivate(currentUserId).catch((error) =>
+              console.error("Could not refresh private data after a live update", error),
+            );
+          }
+        },
       );
     }
     ch.subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [currentUserId, activeKey, loadPrivate]);
+  }, [currentUserId, activeKey, loadPrivate, refreshBooks]);
 
 
   /* ---------- Mutations ---------- */
@@ -856,8 +877,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await refresh();
     },
     markBookSold: async (bookId, sold) => {
+      const previousSold = books.find((book) => book.id === bookId)?.sold;
       setBooks((cur) => cur.map((b) => (b.id === bookId ? { ...b, sold } : b)));
-      await supabase.from("books").update({ sold }).eq("id", bookId);
+      const { error } = await supabase.from("books").update({ sold }).eq("id", bookId);
+      if (error) {
+        if (previousSold !== undefined) {
+          setBooks((cur) => cur.map((b) => (b.id === bookId ? { ...b, sold: previousSold } : b)));
+        }
+        throw error;
+      }
     },
     markNoteSold: async (noteId, sold) => {
       setNotes((cur) => cur.map((n) => (n.id === noteId ? { ...n, sold } : n)));
@@ -946,7 +974,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
 
     updateBook: async (id, patch) => {
-      await supabase.from("books").update({
+      const { error } = await supabase.from("books").update({
         title: patch.title, author: patch.author, price: patch.price,
         rent_per_week: patch.rentPerWeek ?? null, condition: patch.condition,
         category: patch.category, area: patch.area, description: patch.description,
@@ -962,9 +990,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ...(patch.deliveryDeadlineDays != null ? { delivery_deadline_days: patch.deliveryDeadlineDays } : {}),
         ...(patch.sold != null ? { sold: patch.sold } : {}),
       }).eq("id", id);
+      if (error) throw error;
       await refresh();
     },
-    removeBook: async (id) => { await supabase.from("books").update({ removed: true }).eq("id", id); await refresh(); },
+    removeBook: async (id) => {
+      const { error } = await supabase.from("books").update({ removed: true }).eq("id", id);
+      if (error) throw error;
+      await refresh();
+    },
     approveBook: async (id, pct) => {
       await supabase.from("books").update({
         status: "approved", rejection_note: null, commission_override: FEES_ENABLED ? pct : null,

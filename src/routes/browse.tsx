@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { useStore } from "@/lib/mock-store";
+import { useLiveTables, useStore } from "@/lib/mock-store";
 import { HowItWorks } from "@/components/how-it-works";
 import { BookCard } from "@/components/book-card";
 
@@ -31,6 +31,7 @@ const PAGE_SIZE = 20;
 
 function Browse() {
   const { books } = useStore();
+  useLiveTables(["books"]);
   const { category } = Route.useSearch();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState(category ?? "All");
