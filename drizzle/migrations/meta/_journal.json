@@ -57,6 +57,13 @@
       "when": 1794629124813,
       "tag": "0007_require_accepted_enquiry_for_book_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794884837385,
+      "tag": "0008_add_enquiry_retries",
+      "breakpoints": true
     }
   ]
 }

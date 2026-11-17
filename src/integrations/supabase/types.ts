@@ -300,6 +300,7 @@ export type Database = {
       }
       enquiries: {
         Row: {
+          attempts: number
           book_id: string
           buyer_id: string
           created_at: string
@@ -310,6 +311,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          attempts?: number
           book_id: string
           buyer_id: string
           created_at?: string
@@ -320,6 +322,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          attempts?: number
           book_id?: string
           buyer_id?: string
           created_at?: string
@@ -1027,6 +1030,10 @@ export type Database = {
         Returns: boolean
       }
       is_blocked: { Args: { _user_id: string }; Returns: boolean }
+      request_enquiry: {
+        Args: { p_book_id: string; p_message: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "buyer" | "seller" | "admin"
