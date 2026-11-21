@@ -14,6 +14,7 @@ import { registerServiceWorker } from "@/lib/register-sw";
 import { StoreProvider, ThemeProvider } from "@/lib/mock-store";
 import { SiteHeader, SiteFooter, MobileBottomNavigation } from "@/components/site-header";
 import { Toaster } from "@/components/ui/sonner";
+import { WelcomeCarousel } from "@/components/welcome-carousel";
 import { HOME_DESCRIPTION, HOME_TITLE, siteUrl } from "@/lib/seo";
 
 function NotFoundComponent() {
@@ -150,6 +151,7 @@ function RootComponent() {
             <SiteFooter />
             <MobileBottomNavigation />
           </div>
+          <WelcomeCarousel />
           <Toaster />
         </StoreProvider>
       </ThemeProvider>
